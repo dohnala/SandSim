@@ -1,0 +1,14 @@
+.idea/**
+**/*.rs.bk
+Cargo.lock
+wasm-pack.log
+**/pkg
+pkg/
+bin/
+site/node_modules
+dist
+engine/pkg
+engine/target
+engine/wasm-pack.log
+engine/Cargo.lock
+.firebase
