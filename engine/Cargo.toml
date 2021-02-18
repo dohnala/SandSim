@@ -3,7 +3,6 @@ name = "engine"
 version = "0.1.0"
 authors = ["dohnal <dohnal.adam@gmail.com>"]
 description = "Sand simulation"
-license = "MIT/Apache-2.0"
 repository = "https://github.com/dohnala/SandSim"
 edition = "2018"
 

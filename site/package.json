@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "serve": "webpack-dev-server"
+    "build": "webpack --mode=production",
+    "start": "webpack-dev-server -d"
   },
   "dependencies": {
     "engine": "^0.1.0"
