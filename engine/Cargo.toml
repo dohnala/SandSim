@@ -7,9 +7,19 @@ repository = "https://github.com/dohnala/SandSim"
 edition = "2018"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2"
+wasm-bindgen = "0.2.42"
+js-sys = "0.3.19"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dev-dependencies]
+wasm-bindgen-test = "0.2"
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = 3
+lto = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['-O4']

@@ -1,3 +1,3 @@
-import("./node_modules/engine/engine.js").then((js) => {
-  js.greet("WebAssembly");
-});
+import("./main.js").catch(e =>
+    console.error("Error importing `main.js`:", e)
+);

@@ -1,0 +1,24 @@
+* {
+    margin: 0;
+    font-family: "Inconsolata", monospace;
+}
+
+#content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f3f3f4;
+}
+
+#title {
+    margin: 0 auto;
+    display: table;
+}
+
+#canvas {
+    height: 500px;
+    margin: 0 auto;
+    display: table;
+}

@@ -4,7 +4,8 @@
     "start": "webpack-dev-server -d"
   },
   "dependencies": {
-    "engine": "^0.1.0"
+    "engine": "^0.1.0",
+    "regl": "^2.0.1"
   },
   "devDependencies": {
     "webpack": "^4.25.1",
