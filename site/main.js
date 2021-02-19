@@ -1,5 +1,6 @@
 import { Map } from "./node_modules/engine/engine.js";
 import { startWebGL } from "./render";
+import {} from "./ui";
 
 let width = 100;
 let height = 100;

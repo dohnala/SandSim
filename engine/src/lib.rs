@@ -49,12 +49,7 @@ impl Map {
     pub fn new(width: i32, height: i32) -> Map {
         let pixels = (0..width * height)
             .map(|i| {
-                if i % 2 == 0 {
-                    Pixel::new(Element::Empty)
-                }
-                else {
-                    Pixel::new(Element::Sand)
-                }
+                Pixel::new(Element::Empty)
             })
             .collect();
 
@@ -62,6 +57,19 @@ impl Map {
             width,
             height,
             pixels
+        }
+    }
+
+    pub fn paint(&mut self, x: i32, y: i32, element: Element) {
+        if self.get_pixel(x, y).element == Element::Empty || element == Element::Empty {
+            let index = self.get_index(x, y);
+
+            self.pixels[index] = Pixel {
+                element,
+                ra: 0,
+                rb: 0,
+                rc: 0,
+            }
         }
     }
 
@@ -92,7 +100,7 @@ impl Map {
         (x + (y * self.width)) as usize
     }
 
-    fn get_element(&self, x: i32, y: i32) -> Pixel {
+    fn get_pixel(&self, x: i32, y: i32) -> Pixel {
         let i = self.get_index(x, y);
         return self.pixels[i];
     }
