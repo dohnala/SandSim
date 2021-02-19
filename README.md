@@ -15,10 +15,10 @@ cargo install cargo-watch
 # Compile the engine into WebAssembly and create npm package
 cd engine && wasm-pack build && cd ..
 
-# Start web server at http://localhost:8080
+# Start web server at http://localhost:8080/SandSim/
 cd site && npm install && npm run start 
 
-# Watch for changes in engine and rebuild it
+# Watch for changes in engine and rebuild it when needed
 # Run in a separate terminal
 cd engine && cargo watch -s "wasm-pack build"
 ```
