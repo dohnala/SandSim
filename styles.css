@@ -13,12 +13,10 @@
 }
 
 #title {
-    margin: 0 auto;
-    display: table;
+
 }
 
 #canvas {
     height: 500px;
-    margin: 0 auto;
-    display: table;
+    image-rendering: pixelated;
 }
