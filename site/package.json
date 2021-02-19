@@ -1,15 +1,39 @@
 {
+  "name": "sandsim",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "homepage": "https://dohnala.github.io/SandSim/",
   "scripts": {
     "build": "webpack --mode=production",
-    "start": "webpack-dev-server -d"
+    "start": "webpack-dev-server -d",
+    "deploy": "webpack --mode=production && gh-pages -d dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dohnal/SandSim.git"
   },
   "dependencies": {
     "engine": "^0.1.0",
-    "regl": "^2.0.1"
+    "regl": "^2.0.1",
+    "gh-pages": "^3.1.0"
   },
   "devDependencies": {
-    "webpack": "^4.25.1",
-    "webpack-cli": "^3.1.2",
-    "webpack-dev-server": "^3.1.10"
+    "@babel/core": "^7.7.7",
+    "@babel/plugin-syntax-dynamic-import": "^7.7.4",
+    "@babel/preset-env": "^7.7.7",
+    "@babel/preset-react": "^7.7.4",
+    "@wasm-tool/wasm-pack-plugin": "0.2.1",
+    "babel-loader": "^8.0.6",
+    "copy-webpack-plugin": "^6.2.1",
+    "glslify": "^6.4.1",
+    "glslify-loader": "^2.0.0",
+    "html-webpack-plugin": "^3.2.0",
+    "http-server": "^0.12.3",
+    "raw-loader": "^1.0.0",
+    "webpack": "^4.41.4",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.10.1",
+    "workbox-webpack-plugin": "^4.3.1"
   }
 }

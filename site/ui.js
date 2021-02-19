@@ -36,7 +36,6 @@ canvas.addEventListener("mouseleave", event => {
 });
 
 const paint = event => {
-    console.log(painting)
     if (!painting) {
         return;
     }
