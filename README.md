@@ -1,5 +1,7 @@
 # Sand simulation
 
+See [live demo](https://dohnala.github.io/SandSim/)
+
 ## Requirements
 To install all necessary tools, follow [these instructions](https://developer.mozilla.org/en-US/docs/WebAssembly/Rust_to_wasm)
 
