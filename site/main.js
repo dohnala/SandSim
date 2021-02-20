@@ -14,6 +14,10 @@ canvas.height = height * Math.ceil(window.devicePixelRatio);
 let drawMap = startWebGL({ canvas, map });
 
 const renderLoop = () => {
+    if (!window.paused) {
+        map.tick();
+    }
+
     drawMap();
     window.animationId = requestAnimationFrame(renderLoop);
 };

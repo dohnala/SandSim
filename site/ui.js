@@ -50,7 +50,7 @@ const paint = event => {
     const x = Math.min(Math.floor(canvasLeft), width - 1);
     const y = Math.min(Math.floor(canvasTop), height - 1);
 
-    map.paint(
+    map.insert(
         x,
         y,
         Element.Sand

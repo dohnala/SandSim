@@ -28,8 +28,12 @@ let startWebGL = ({ canvas, map }) => {
                 color = vec4(1, 1, 1, 1);
             }
             
-            // sand
             if (element == 1) {
+                color = vec4(0, 0, 0, 1);
+            }
+            
+            // sand
+            if (element == 2) {
                 color = vec4(0.76, 0.7, 0.5, 1);
             }
             
