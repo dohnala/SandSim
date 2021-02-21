@@ -1,6 +1,6 @@
-use super::utils::*;
-use crate::{Pixel, MapApi, EMPTY_PIXEL};
 use wasm_bindgen::prelude::*;
+use super::utils::*;
+use crate::map::{Pixel, MapApi, EMPTY_PIXEL};
 
 /// Represent an element of a pixel
 #[wasm_bindgen]
@@ -28,12 +28,12 @@ pub fn update_sand(pixel: Pixel, mut api: MapApi) {
     let down_pixel = api.get_pixel(0, 1);
 
     // Move down
-    if down_pixel.element == Element::Empty {
+    if down_pixel.element() == Element::Empty {
         api.set_pixel(0, 0, EMPTY_PIXEL);
         api.set_pixel(0, 1, pixel);
     }
     // Move down diagonally
-    else if api.get_pixel(dx, 1).element == Element::Empty {
+    else if api.get_pixel(dx, 1).element() == Element::Empty {
         api.set_pixel(0, 0, EMPTY_PIXEL);
         api.set_pixel(dx, 1, pixel);
     }
