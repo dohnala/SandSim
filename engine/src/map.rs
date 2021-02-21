@@ -139,15 +139,15 @@ impl Map {
     /// Simulates a tick and process all pixels
     pub fn tick(&mut self) {
         for x in 0..self.width {
-            // process pixels on the row from different side each time
-            let scan_x = if self.generation % 2 == 0 {
-                self.width - (1 + x)
-            } else {
-                x
-            };
-
             // process pixels from bottom
             for y in (0..self.height).rev() {
+                // process rows from different side each tick
+                let scan_x = if (y + i32::from(self.generation)) % 2 == 0 {
+                    self.width - (1 + x)
+                } else {
+                    x
+                };
+
                 Map::update_pixel(
                     self.get_pixel_state(scan_x, y),
                     MapApi {
@@ -191,7 +191,7 @@ impl Map {
     }
 
     fn update_pixel(pixel_state: PixelState, api: MapApi) {
-        if pixel_state.clock - api.map.generation == 1 {
+        if pixel_state.clock.wrapping_sub(api.map.generation) == 1 {
             return;
         }
 
