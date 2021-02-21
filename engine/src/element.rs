@@ -16,12 +16,19 @@ impl Element {
     /// Update given pixel according to the element
     pub fn update(&self, pixel: PixelState, api: MapApi) {
         match self {
-            Element::Empty => {}
-            Element::Wall => {}
+            Element::Empty => update_static(pixel, api),
+            Element::Wall => update_static(pixel, api),
             Element::Sand => update_sand(pixel, api),
         }
     }
 }
+
+/// STATIC OBJECTS
+pub fn update_static(pixel: PixelState, mut api: MapApi) {
+    api.set_pixel(0, 0, pixel);
+}
+
+
 /// SAND
 pub fn update_sand(pixel: PixelState, mut api: MapApi) {
     let dx = rand_dir_2();

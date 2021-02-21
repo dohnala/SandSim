@@ -1,3 +1,5 @@
+extern crate console_error_panic_hook;
+
 use wasm_bindgen::prelude::*;
 use crate::element::Element;
 
@@ -79,6 +81,8 @@ pub struct Map {
 impl Map {
     /// Creates a new empty map with given width and height
     pub fn new(width: i32, height: i32) -> Map {
+        console_error_panic_hook::set_once();
+
         let pixels = (0..width * height)
             .map(|_i| {
                 EMPTY_PIXEL
@@ -142,12 +146,10 @@ impl Map {
                 x
             };
 
+            // process pixels from bottom
             for y in (0..self.height).rev() {
-                // process pixels from bottom
-                let pixel_state = self.get_pixel_state(scan_x, y);
-
                 Map::update_pixel(
-                    pixel_state,
+                    self.get_pixel_state(scan_x, y),
                     MapApi {
                         map: self,
                         x: scan_x,
