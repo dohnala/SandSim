@@ -3,12 +3,9 @@
     font-family: "Inconsolata", monospace;
 }
 
-#content {
-    background-color: #95a5a6;
-}
-
-#title {
-
+body
+{
+    background-color: #95a5a6 !important;
 }
 
 #canvas {
