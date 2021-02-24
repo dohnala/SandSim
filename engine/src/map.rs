@@ -153,7 +153,7 @@ impl Map {
             // process pixels from bottom
             for y in (0..self.height).rev() {
                 // process rows from different side each tick
-                let scan_x = if (y + i32::from(self.generation)) % 2 == 0 {
+                let scan_x = if self.generation % 2 == 0 {
                     self.width - (1 + x)
                 } else {
                     x
