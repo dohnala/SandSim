@@ -1,3 +1,2 @@
-mod element;
-mod utils;
-mod map;
+pub mod element;
+pub mod map;
