@@ -8,7 +8,39 @@
     <body>
         <div id="content">
             <h2 id="title">Sand simulation</h2>
-            <canvas id="canvas"></canvas>
+            <div class="row">
+                <div class="col-md-auto">
+                    <canvas id="canvas"></canvas>
+                </div>
+                <div class="col-md-auto" id="debug">
+                    <div class="row">
+                        <div class="col-md-auto px-1">
+                            <input type="checkbox" id="velocity">
+                            <label for="velocity">Velocity</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-auto px-1">
+                            <input type="checkbox" id="forceX">
+                            <label for="forceX">Force X</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-auto px-1">
+                            <input type="checkbox" id="forceY">
+                            <label for="forceY">Force Y</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-auto px-1">
+                            <a id="pause" href="#" class="btn btn-primary btn-sm">Pause</a>
+                        </div>
+                        <div class="col-md-auto px-1">
+                            <a id ="nextFrame" href="#" class="btn btn-primary btn-sm">Next frame</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </body>
 </html>
