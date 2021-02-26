@@ -12,3 +12,23 @@ body
     height: 500px;
     image-rendering: pixelated;
 }
+
+.row {
+    padding-bottom: 10px;
+}
+
+.row.elements {
+    padding-left: 20px;
+}
+
+.emptyElement {
+    color: rgba(255,255,255,1);
+}
+
+.wallElement {
+    color: rgba(0,0,0,1);
+}
+
+.sandElement {
+    color: rgba(194, 178, 127, 1);
+}
