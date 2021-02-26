@@ -12,7 +12,3 @@ body
     height: 500px;
     image-rendering: pixelated;
 }
-
-#play, #pause {
-    width: 100px;
-}

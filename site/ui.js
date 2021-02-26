@@ -6,29 +6,36 @@ import { Element } from "./node_modules/engine/engine.js";
 const canvas = document.getElementById("canvas");
 
 let paused = false;
+let playButton = $('#play')
 let pauseButton = $('#pause')
 let nextFrameButton = $('#nextFrame')
 
+playButton.hide();
 nextFrameButton.addClass("disabled");
 
-pauseButton.click(e => {
-    paused = !paused;
-    window.paused = paused;
-
-    pauseButton.html(paused ? "Play" : "Pause");
-
-    if (paused) {
-        nextFrameButton.removeClass("disabled");
-    } else {
-        nextFrameButton.addClass("disabled");
-    }
-});
+playButton.click(e => tooglePause());
+pauseButton.click(e => tooglePause());
 
 nextFrameButton.click(e => {
     if (paused) {
         nextTick();
     }
 });
+
+const tooglePause = () => {
+    paused = !paused;
+    window.paused = paused;
+
+    if (paused) {
+        playButton.show();
+        pauseButton.hide();
+        nextFrameButton.removeClass("disabled");
+    } else {
+        playButton.hide();
+        pauseButton.show();
+        nextFrameButton.addClass("disabled");
+    }
+}
 
 let painting = false;
 let lastPaint = null;
