@@ -5,6 +5,8 @@ import { Element } from "./node_modules/engine/engine.js";
 
 const canvas = document.getElementById("canvas");
 
+let selectedElement = Element.Sand;
+
 let paused = false;
 let playButton = $('#play')
 let pauseButton = $('#pause')
@@ -13,16 +15,18 @@ let nextFrameButton = $('#nextFrame')
 playButton.hide();
 nextFrameButton.addClass("disabled");
 
-playButton.click(e => tooglePause());
-pauseButton.click(e => tooglePause());
+playButton.click(() => togglePause());
+pauseButton.click(() => togglePause());
 
-nextFrameButton.click(e => {
+nextFrameButton.click(() => {
     if (paused) {
         nextTick();
     }
 });
 
-const tooglePause = () => {
+$('#reset').click(() => map.clear());
+
+const togglePause = () => {
     paused = !paused;
     window.paused = paused;
 
@@ -36,6 +40,10 @@ const tooglePause = () => {
         nextFrameButton.addClass("disabled");
     }
 }
+
+$('#emptyElement').change(() => selectedElement = Element.Empty);
+$('#wallElement').change(() => selectedElement = Element.Wall);
+$('#sandElement').change(() => selectedElement = Element.Sand);
 
 let painting = false;
 let lastPaint = null;
@@ -84,11 +92,7 @@ const paint = event => {
     const x = Math.min(Math.floor(canvasLeft), width - 1);
     const y = Math.min(Math.floor(canvasTop), height - 1);
 
-    map.insert(
-        x,
-        y,
-        Element.Sand
-    );
+    map.insert(x, y, selectedElement);
 };
 
 function smoothPaint(event) {

@@ -25,7 +25,7 @@ let startWebGL = ({ canvas, map }) => {
             
             // empty
             if (element == 0) {
-                color = vec4(1, 1, 1, 1);
+                color = vec4(255, 255, 255, 1);
             }
             
             if (element == 1) {
