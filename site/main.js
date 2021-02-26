@@ -15,13 +15,17 @@ let drawMap = startWebGL({ canvas, map });
 
 const renderLoop = () => {
     if (!window.paused) {
-        map.tick();
+        nextTick();
     }
 
     drawMap();
     window.animationId = requestAnimationFrame(renderLoop);
 };
 
+const nextTick = () => {
+    map.tick();
+}
+
 renderLoop();
 
-export { canvas, width, height, map };
+export { canvas, width, height, map, nextTick};
