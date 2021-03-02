@@ -3,8 +3,8 @@ import { startWebGL } from "./render";
 import {} from "./ui";
 import {fps, frameTime, renderTime, tickTime} from "./performance";
 
-let width = 100;
-let height = 100;
+let width = 128;
+let height = 128;
 const map = Map.new(width, height);
 
 const canvas = document.getElementById("canvas");

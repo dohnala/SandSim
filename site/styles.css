@@ -21,7 +21,8 @@ table {
 }
 
 #canvas {
-    height: 500px;
+    width: 800px;
+    height: 800px;
     image-rendering: pixelated;
 }
 
