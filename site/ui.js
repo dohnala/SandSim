@@ -1,3 +1,5 @@
+import {tickTime} from "./performance";
+
 var $ = require( "jquery" );
 
 import { width, height, map, nextTick } from "./main.js";
@@ -20,7 +22,9 @@ pauseButton.click(() => togglePause());
 
 nextFrameButton.click(() => {
     if (paused) {
+        tickTime.start();
         nextTick();
+        tickTime.stop();
     }
 });
 

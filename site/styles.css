@@ -3,9 +3,21 @@
     font-family: "Inconsolata", monospace;
 }
 
-body
-{
-    background-color: #95a5a6 !important;
+body {
+    background-color: #303030 !important;
+    color: #D0D0D0 !important;
+}
+
+table {
+    color: #D0D0D0 !important;
+}
+
+#title, table th {
+    color: #F39C12;
+}
+
+#content {
+    padding: 1em;
 }
 
 #canvas {
@@ -13,12 +25,27 @@ body
     image-rendering: pixelated;
 }
 
-.row {
-    padding-bottom: 10px;
+#performance table {
+    margin-bottom: 0;
 }
 
-.row.elements {
-    padding-left: 20px;
+#performance table td {
+    text-align: center;
+}
+
+#painting label {
+    margin-bottom: 0;
+}
+
+.debug-panel {
+    margin-bottom: 1em;
+    padding: 0.5em;
+    border: 1px var(--gray) solid;
+    border-radius: 3px;
+}
+
+.fps {
+    color: var(--success);
 }
 
 .emptyElement {
