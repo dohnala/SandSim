@@ -13,7 +13,7 @@
                     <canvas id="canvas"></canvas>
                 </div>
                 <div class="col-md-auto" id="debug">
-                    <div class="row">
+                    <div id="actions" class="row debug-panel">
                         <div class="col-md-auto px-1">
                             <a id="play" href="#" class="btn btn-primary btn-sm">
                                 <i class="bi bi-play-fill"></i>
@@ -30,8 +30,37 @@
                         </div>
                     </div>
 
-                    <div class="row elements">
+                    <div id="performance" class="row debug-panel performance">
                         <div class="col-md-auto px-1">
+                            <table class="table table-sm table-borderless">
+                                <thead>
+                                <tr>
+                                    <th id="fps" scope="col" class="fps"></th>
+                                    <th scope="col">Frame</th>
+                                    <th scope="col">Render</th>
+                                    <th scope="col">Tick</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <th scope="row">Mean</th>
+                                    <td id="meanFrameTime"></td>
+                                    <td id="meanRenderTime"></td>
+                                    <td id="meanTickTime"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Last frame</th>
+                                    <td id="lastFrameTime"></td>
+                                    <td id="lastRenderTime"></td>
+                                    <td id="lastTickTime"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row debug-panel">
+                        <div id="painting" class="col-md-auto px-1">
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="flexRadioDefault" id="emptyElement">
                                 <label class="form-check-label" for="emptyElement">
@@ -60,5 +89,5 @@
                 </div>
             </div>
         </div>
-    <script type="text/javascript" src="/SandSim/main.019fd423597341b0ab30.js"></script></body>
+    <script type="text/javascript" src="/SandSim/main.d89bd88c5d164422ac99.js"></script></body>
 </html>
