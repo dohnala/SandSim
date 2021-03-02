@@ -15,18 +15,12 @@ impl Element {
     // Update given pixel according to the element
     pub fn update(&self, pixel: PixelState, api: MapApi) {
         match self {
-            Element::Empty => update_static(pixel, api),
-            Element::Wall => update_static(pixel, api),
+            Element::Empty => (),
+            Element::Wall => (),
             Element::Sand => update_sand(pixel, api),
         }
     }
 }
-
-// STATIC OBJECTS
-fn update_static(pixel: PixelState, mut api: MapApi) {
-    api.set_pixel(0, 0, pixel);
-}
-
 
 // SAND
 fn update_sand(pixel: PixelState, mut api: MapApi) {

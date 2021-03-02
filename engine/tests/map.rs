@@ -81,7 +81,7 @@ fn test_map_tick()
             assert_eq!(map.get_pixel(x, y).element(), Element::Empty);
 
             assert_eq!(map.get_pixel_state(x, y).element(), Element::Empty);
-            assert_eq!(map.get_pixel_state(x, y).clock(), 1);
+            assert_eq!(map.get_pixel_state(x, y).clock(), 0);
         }
     }
 }
