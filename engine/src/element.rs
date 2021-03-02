@@ -13,8 +13,8 @@ pub enum Element {
 
 impl Element {
     // Update given pixel according to the element
-    pub fn update(&self, pixel: PixelState, api: MapApi) {
-        match self {
+    pub fn update(pixel: &mut PixelState, api: &mut MapApi) {
+        match pixel.element()  {
             Element::Empty => (),
             Element::Wall => (),
             Element::Sand => update_sand(pixel, api),
@@ -23,26 +23,14 @@ impl Element {
 }
 
 // SAND
-fn update_sand(pixel: PixelState, mut api: MapApi) {
-    let dx = api.rand_dir();
+fn update_sand(pixel: &mut PixelState, api: &mut MapApi) {
     let down_pixel = api.get_pixel(0, 1);
 
     // Move down
     if down_pixel.element() == Element::Empty {
-        api.set_pixel(0, 0, EMPTY_PIXEL_STATE);
+        api.set_pixel(0, 0, &EMPTY_PIXEL_STATE);
         api.set_pixel(0, 1, pixel);
-    }
-    // Move randomly to down-left or down-right if possible
-    else if api.get_pixel(-dx, 1).element() == Element::Empty {
-        api.set_pixel(0, 0, EMPTY_PIXEL_STATE);
-        api.set_pixel(-dx, 1, pixel);
-    }
-    else if api.get_pixel(dx, 1).element() == Element::Empty {
-        api.set_pixel(0, 0, EMPTY_PIXEL_STATE);
-        api.set_pixel(dx, 1, pixel);
-    }
-    // Do nothing
-    else {
+    } else {
         api.set_pixel(0, 0, pixel);
     }
 }

@@ -33,20 +33,15 @@ impl Pixel {
     }
 }
 
-static EMPTY_PIXEL: Pixel = Pixel {
-    element: Element::Empty,
-    ra: 0,
-    rb: 0,
-    rc: 0,
-};
-
 // Represents pixel state on the map
 #[wasm_bindgen]
 #[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PixelState {
     element: Element,
-    clock: u8,
+    velocity_y: f32,
+    // used to determine if the pixel was updated during a tick
+    clock_flag: bool,
 }
 
 #[wasm_bindgen]
@@ -55,27 +50,45 @@ impl PixelState {
     pub fn new(element: Element) -> PixelState {
         PixelState {
             element,
-            clock: 0,
+            velocity_y: 0f32,
+            clock_flag: false,
         }
-    }
-
-    // Updates a pixel
-    fn update(&self, api: MapApi) {
-        self.element.update(*self, api);
     }
 
     pub fn element(&self) -> Element {
         self.element
     }
 
-    pub fn clock(&self) -> u8 {
-        self.clock
+    pub fn get_velocity_y(&self) -> f32 {
+        self.velocity_y
+    }
+
+    pub fn add_velocity_y(&mut self, velocity: f32) {
+        self.velocity_y += velocity
+    }
+
+    pub fn clock_flag(&self) -> bool {
+        self.clock_flag
     }
 }
 
+static EMPTY_PIXEL: Pixel = Pixel {
+    element: Element::Empty,
+    ra: 0,
+    rb: 0,
+    rc: 0,
+};
+
 pub static EMPTY_PIXEL_STATE: PixelState = PixelState {
     element: Element::Empty,
-    clock: 0,
+    velocity_y: 0f32,
+    clock_flag: false,
+};
+
+pub static WALL_PIXEL_STATE: PixelState = PixelState {
+    element: Element::Wall,
+    velocity_y: 0f32,
+    clock_flag: false,
 };
 
 // Represents a map of given width and height composed of pixels
@@ -85,7 +98,9 @@ pub struct Map {
     height: i32,
     pixels: Vec<Pixel>,
     pixel_states: Vec<PixelState>,
-    generation: u8
+    generation: u8,
+    // used to determine which pixels were updated during a tick
+    clock_flag: bool,
 }
 
 #[wasm_bindgen]
@@ -111,7 +126,8 @@ impl Map {
             height,
             pixels,
             pixel_states,
-            generation: 0
+            generation: 0,
+            clock_flag: false,
         }
     }
 
@@ -120,23 +136,19 @@ impl Map {
         if self.get_pixel_state(x, y).element() == Element::Empty || element == Element::Empty {
             let index = self.get_index(x, y);
 
-            self.pixels[index] = Pixel {
-                element,
-                ra: 0,
-                rb: 0,
-                rc: 0,
-            };
-
+            self.pixels[index] = Pixel::new(element);
             self.pixel_states[index] = PixelState {
                 element,
-                clock: self.generation,
-            }
+                velocity_y: 0f32,
+                clock_flag: self.clock_flag,
+            };
         }
     }
 
     // Clears the map so its empty
     pub fn clear(&mut self) {
         self.generation = 0;
+        self.clock_flag = false;
 
         for x in 0..self.width {
             for y in 0..self.height {
@@ -149,6 +161,8 @@ impl Map {
 
     // Simulates a tick and process all pixels
     pub fn tick(&mut self) {
+        self.clock_flag = !self.clock_flag;
+
         for x in 0..self.width {
             // process pixels from bottom
             for y in (0..self.height).rev() {
@@ -160,8 +174,8 @@ impl Map {
                 };
 
                 Map::update_pixel(
-                    self.get_pixel_state(scan_x, y),
-                    MapApi::new(scan_x, y, self));
+                    &mut self.get_pixel_state(scan_x, y),
+                    &mut MapApi::new(scan_x, y, self));
             }
         }
 
@@ -200,12 +214,21 @@ impl Map {
         (x + (y * self.width)) as usize
     }
 
-    fn update_pixel(pixel_state: PixelState, api: MapApi) {
-        if pixel_state.clock.wrapping_sub(api.map.generation) == 1 {
-            return;
+    fn update_pixel(pixel: &mut PixelState, api: &mut MapApi) {
+        if Map::can_update(pixel, api) {
+            pixel.clock_flag = api.map.clock_flag;
+            Element::update(pixel, api);
         }
+    }
 
-        pixel_state.update(api);
+    // Return true if a pixel can be updated
+    fn can_update(pixel: &mut PixelState, api: &MapApi) -> bool {
+        match pixel.element {
+            // TODO: replace with static flag
+            Element::Empty => false,
+            Element::Wall => false,
+            _ => pixel.clock_flag() != api.map.clock_flag
+        }
     }
 }
 
@@ -222,7 +245,7 @@ impl<'a> MapApi<'a> {
         MapApi {
             x,
             y,
-            map
+            map,
         }
     }
 
@@ -232,17 +255,14 @@ impl<'a> MapApi<'a> {
         let ny = self.y + dy;
 
         if nx < 0 || nx > self.map.width - 1 || ny < 0 || ny > self.map.height - 1 {
-            return PixelState {
-                element: Element::Wall,
-                clock: self.map.generation,
-            };
+            return WALL_PIXEL_STATE;
         }
 
         self.map.get_pixel_state(nx, ny)
     }
 
     // Sets a pixel at to a direction (dx, dy) relative to current pixel
-    pub fn set_pixel(&mut self, dx: i32, dy: i32, pixel: PixelState) {
+    pub fn set_pixel(&mut self, dx: i32, dy: i32, pixel: &PixelState) {
         let nx = self.x + dx;
         let ny = self.y + dy;
 
@@ -253,8 +273,7 @@ impl<'a> MapApi<'a> {
         let index = self.map.get_index(nx, ny);
 
         self.map.pixels[index] = Pixel::new(pixel.element);
-        self.map.pixel_states[index] = pixel;
-        self.map.pixel_states[index].clock = self.map.generation.wrapping_add(1);
+        self.map.pixel_states[index] = *pixel;
     }
 
     pub fn rand_dir(&self) -> i32 {
