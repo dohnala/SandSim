@@ -10,9 +10,8 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2.42"
-js-sys = "0.3.47"
-cfg-if = "0.1.10"
+wasm-bindgen = "0.2.71"
+js-sys = "0.3.48"
 console_error_panic_hook = "0.1.6"
 
 [dev-dependencies]

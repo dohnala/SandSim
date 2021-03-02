@@ -1,18 +1,32 @@
-import { Map } from "./node_modules/engine/engine.js";
+import {Map, MapConfig} from "./node_modules/engine/engine.js";
 import { startWebGL } from "./render";
 import {} from "./ui";
 import {fps, frameTime, renderTime, tickTime} from "./performance";
 
-let width = 128;
-let height = 128;
-const map = Map.new(width, height);
+let config = {
+    width: 128,
+    height: 128,
+    gravity: 0.2,
+    max_velocity: 5
+}
+
+let map;
+let drawMap;
 
 const canvas = document.getElementById("canvas");
 
-canvas.width = width * Math.ceil(window.devicePixelRatio);
-canvas.height = height * Math.ceil(window.devicePixelRatio);
+const generateSeed = () => {
+    return Math.floor(Math.random() * Math.floor(10000));
+}
 
-let drawMap = startWebGL({ canvas, map });
+const createMap = () => {
+    map = Map.new(MapConfig.new(config.width, config.height, config.gravity, config.max_velocity, generateSeed()));
+    canvas.width = config.width * Math.ceil(window.devicePixelRatio);
+    canvas.height = config.height * Math.ceil(window.devicePixelRatio);
+    drawMap = startWebGL({ canvas, map });
+}
+
+createMap();
 
 const renderLoop = () => {
     fps.measure();
@@ -34,9 +48,9 @@ const renderLoop = () => {
 };
 
 const nextTick = () => {
-    map.tick();
+    map.tick(fps.delta);
 }
 
 renderLoop();
 
-export { canvas, width, height, map, nextTick};
+export { canvas, config, map, createMap, nextTick};

@@ -2,6 +2,7 @@ extern crate console_error_panic_hook;
 
 use wasm_bindgen::prelude::*;
 use crate::element::Element;
+use crate::rand::Random;
 
 // Represents a read-only pixel on the map
 #[wasm_bindgen]
@@ -59,16 +60,18 @@ impl PixelState {
         self.element
     }
 
-    pub fn get_velocity_y(&self) -> f32 {
+    pub fn velocity_y(&self) -> f32 {
         self.velocity_y
-    }
-
-    pub fn add_velocity_y(&mut self, velocity: f32) {
-        self.velocity_y += velocity
     }
 
     pub fn clock_flag(&self) -> bool {
         self.clock_flag
+    }
+}
+
+impl PixelState {
+    fn set_velocity_y(&mut self, velocity: f32) {
+        self.velocity_y = velocity;
     }
 }
 
@@ -91,50 +94,76 @@ pub static WALL_PIXEL_STATE: PixelState = PixelState {
     clock_flag: false,
 };
 
-// Represents a map of given width and height composed of pixels
+// Represents a map configuration
 #[wasm_bindgen]
-pub struct Map {
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MapConfig {
     width: i32,
     height: i32,
+    gravity: f32,
+    max_velocity: f32,
+    seed: u16,
+}
+
+#[wasm_bindgen]
+impl MapConfig {
+    pub fn new(width: i32, height: i32, gravity: f32, max_velocity: f32, seed: u16) -> MapConfig {
+        MapConfig {
+            width,
+            height,
+            gravity,
+            max_velocity,
+            seed,
+        }
+    }
+}
+
+// Represents a map composed of pixels
+#[wasm_bindgen]
+pub struct Map {
+    config: MapConfig,
     pixels: Vec<Pixel>,
     pixel_states: Vec<PixelState>,
     generation: u8,
     // used to determine which pixels were updated during a tick
     clock_flag: bool,
+    random: Random,
 }
 
 #[wasm_bindgen]
 impl Map {
-    // Creates a new empty map with given width and height
-    pub fn new(width: i32, height: i32) -> Map {
+    // Creates a new empty map with given config
+    pub fn new(config: MapConfig) -> Map {
         console_error_panic_hook::set_once();
 
-        let pixels = (0..width * height)
+        let pixels = (0..config.width * config.height)
             .map(|_i| {
                 EMPTY_PIXEL
             })
             .collect();
 
-        let pixel_states = (0..width * height)
+        let pixel_states = (0..config.width * config.height)
             .map(|_i| {
                 EMPTY_PIXEL_STATE
             })
             .collect();
 
+        let random = Random::new(config.seed);
+
         Map {
-            width,
-            height,
+            config,
             pixels,
             pixel_states,
             generation: 0,
             clock_flag: false,
+            random,
         }
     }
 
     // Inserts a new pixel of given element at x,y
     pub fn insert(&mut self, x: i32, y: i32, element: Element) {
-        if self.get_pixel_state(x, y).element() == Element::Empty || element == Element::Empty {
-            let index = self.get_index(x, y);
+        if self.pixel_state(x, y).element() == Element::Empty || element == Element::Empty {
+            let index = self.index(x, y);
 
             self.pixels[index] = Pixel::new(element);
             self.pixel_states[index] = PixelState {
@@ -150,9 +179,9 @@ impl Map {
         self.generation = 0;
         self.clock_flag = false;
 
-        for x in 0..self.width {
-            for y in 0..self.height {
-                let index = self.get_index(x, y);
+        for x in 0..self.config.width {
+            for y in 0..self.config.height {
+                let index = self.index(x, y);
                 self.pixels[index] = EMPTY_PIXEL;
                 self.pixel_states[index] = EMPTY_PIXEL_STATE
             }
@@ -163,18 +192,18 @@ impl Map {
     pub fn tick(&mut self) {
         self.clock_flag = !self.clock_flag;
 
-        for x in 0..self.width {
+        for x in 0..self.config.width {
             // process pixels from bottom
-            for y in (0..self.height).rev() {
+            for y in (0..self.config.height).rev() {
                 // process rows from different side each tick
                 let scan_x = if self.generation % 2 == 0 {
-                    self.width - (1 + x)
+                    self.config.width - (1 + x)
                 } else {
                     x
                 };
 
                 Map::update_pixel(
-                    &mut self.get_pixel_state(scan_x, y),
+                    &mut self.pixel_state(scan_x, y),
                     &mut MapApi::new(scan_x, y, self));
             }
         }
@@ -183,11 +212,11 @@ impl Map {
     }
 
     pub fn width(&self) -> i32 {
-        self.width
+        self.config.width
     }
 
     pub fn height(&self) -> i32 {
-        self.height
+        self.config.height
     }
 
     pub fn generation(&self) -> u8 {
@@ -198,20 +227,20 @@ impl Map {
         self.pixels.as_ptr()
     }
 
-    pub fn get_pixel(&self, x: i32, y: i32) -> Pixel {
-        let i = self.get_index(x, y);
+    pub fn pixel(&self, x: i32, y: i32) -> Pixel {
+        let i = self.index(x, y);
         return self.pixels[i];
     }
 
-    pub fn get_pixel_state(&self, x: i32, y: i32) -> PixelState {
-        let i = self.get_index(x, y);
+    pub fn pixel_state(&self, x: i32, y: i32) -> PixelState {
+        let i = self.index(x, y);
         return self.pixel_states[i];
     }
 }
 
 impl Map {
-    fn get_index(&self, x: i32, y: i32) -> usize {
-        (x + (y * self.width)) as usize
+    fn index(&self, x: i32, y: i32) -> usize {
+        (x + (y * self.config.width)) as usize
     }
 
     fn update_pixel(pixel: &mut PixelState, api: &mut MapApi) {
@@ -249,16 +278,31 @@ impl<'a> MapApi<'a> {
         }
     }
 
+    pub fn gravity(&self) -> f32 {
+        return self.map.config.gravity;
+    }
+
+    // Adds velocity to given pixel
+    pub fn add_velocity(&mut self, pixel: &mut PixelState, velocity: f32) {
+        self.set_velocity(pixel, pixel.velocity_y + velocity);
+    }
+
+    // Adds velocity to given pixel
+    pub fn set_velocity(&mut self, pixel: &mut PixelState, velocity: f32) {
+        pixel.set_velocity_y(velocity.clamp(
+            -self.map.config.max_velocity, self.map.config.max_velocity));
+    }
+
     // Returns a pixel in direction (dx, dy) relative to current pixel
-    pub fn get_pixel(&mut self, dx: i32, dy: i32) -> PixelState {
+    pub fn pixel(&mut self, dx: i32, dy: i32) -> PixelState {
         let nx = self.x + dx;
         let ny = self.y + dy;
 
-        if nx < 0 || nx > self.map.width - 1 || ny < 0 || ny > self.map.height - 1 {
+        if nx < 0 || nx > self.map.config.width - 1 || ny < 0 || ny > self.map.config.height - 1 {
             return WALL_PIXEL_STATE;
         }
 
-        self.map.get_pixel_state(nx, ny)
+        self.map.pixel_state(nx, ny)
     }
 
     // Sets a pixel at to a direction (dx, dy) relative to current pixel
@@ -266,19 +310,124 @@ impl<'a> MapApi<'a> {
         let nx = self.x + dx;
         let ny = self.y + dy;
 
-        if nx < 0 || nx > self.map.width - 1 || ny < 0 || ny > self.map.height - 1 {
+        if nx < 0 || nx > self.map.config.width - 1 || ny < 0 || ny > self.map.config.height - 1 {
             return;
         }
 
-        let index = self.map.get_index(nx, ny);
+        let index = self.map.index(nx, ny);
 
         self.map.pixels[index] = Pixel::new(pixel.element);
         self.map.pixel_states[index] = *pixel;
     }
 
-    pub fn rand_dir(&self) -> i32 {
-        let rnd = self.map.generation.wrapping_add((self.x + self.y) as u8);
+    // Compute a path in the map of the pixel according to its velocity and pass that context
+    // to given function which should do the actual movement across the path and should return
+    // whether the movement should continue or stop
+    pub fn move_by_velocity(&mut self,
+                            pixel: &mut PixelState,
+                            move_f: fn(&mut PixelState, &mut MapApi, &MoveContext) -> MoveResult) {
+        let sign_y = if pixel.velocity_y() > 0f32 {1} else {-1};
+        let velocity_y = (pixel.velocity_y().abs()) as i32;
 
-        if (rnd & 1 << 7) == 0 { -1 } else { 1 }
+        // Keep track of last valid position during the movement
+        let last_valid_x = 0;
+        let mut last_valid_y = 0;
+
+        if velocity_y >= 1 {
+            for y in 1..=velocity_y {
+                let contact = self.pixel(0, y * sign_y);
+
+                let result = move_f(pixel, self, &MoveContext::new(
+                    0,
+                    y * sign_y,
+                    contact,
+                    y == 1,
+                    y == velocity_y,
+                    last_valid_x,
+                    last_valid_y));
+
+                match result {
+                    MoveResult::STOP => break,
+                    MoveResult::CONTINUE => {
+                        // Update last valid position with a new place
+                        last_valid_y = y * sign_y;
+                        continue
+                    }
+                }
+            }
+        } else {
+            // Update itself so the changes of velocity, ... are stored
+            self.set_pixel(0, 0, pixel);
+        }
     }
+
+    // Move to a neighbor position using given unit direction and pass a new context
+    // to given function which should do the actual movement
+    //
+    // This can only be called inside move function where the move context is available
+    pub fn move_by_direction(&mut self,
+                             pixel: &mut PixelState,
+                             direction_x: i32,
+                             direction_y: i32,
+                             context: &MoveContext,
+                             move_f: fn(&mut PixelState,
+                                        &mut MapApi,
+                                        &MoveContext) -> MoveResult) -> MoveResult {
+        let contact = self.pixel(
+            context.x + direction_x,
+            context.y + direction_y);
+
+        return move_f(pixel, self, &MoveContext::new(
+            context.x + direction_x,
+            context.y + direction_y,
+            contact,
+            false,
+            true,
+            context.last_valid_x,
+            context.last_valid_y));
+    }
+
+    // Returns random index from given probability distribution
+    pub fn rand(&mut self, distribution: &[f32]) -> usize {
+        let mut random = self.map.random.next();
+
+        for (i, prob) in distribution.iter().enumerate() {
+            if random <= *prob {
+                return i;
+            } else {
+                random -= prob;
+            }
+        }
+
+        distribution.len() - 1
+    }
+}
+
+pub struct MoveContext {
+    pub x: i32,
+    pub y: i32,
+    pub contact: PixelState,
+    pub first_move: bool,
+    pub last_move: bool,
+    pub last_valid_x: i32,
+    pub last_valid_y: i32,
+}
+
+impl MoveContext {
+    pub fn new(x: i32,
+               y: i32,
+               contact: PixelState,
+               first_move: bool,
+               last_move: bool,
+               last_valid_x: i32,
+               last_valid_y: i32) -> MoveContext {
+        MoveContext {
+            x, y, contact, first_move, last_move, last_valid_x, last_valid_y
+        }
+    }
+}
+
+pub enum MoveResult {
+    CONTINUE,
+    STOP
 }

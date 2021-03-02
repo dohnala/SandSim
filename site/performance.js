@@ -6,18 +6,18 @@ let meanRenderTimeLabel = document.getElementById("meanRenderTime");
 let meanTickTimeLabel = document.getElementById("meanTickTime");
 let lastTickTimeLabel = document.getElementById("lastTickTime");
 
-const fps = new class {
-    constructor() {
-        this.mean = 0;
-        this.frames = [];
-        this.lastFrameTimeStamp = performance.now();
-    }
+const fps = {
+    mean: 0,
+    delta: 0,
+    frames: [],
+    lastFrameTimeStamp: performance.now(),
 
     measure() {
         const now = performance.now();
-        const delta = now - this.lastFrameTimeStamp;
+        const diff = now - this.lastFrameTimeStamp;
         this.lastFrameTimeStamp = now;
-        const fps = (1 / delta) * 1000;
+        const fps = (1 / diff) * 1000;
+        this.delta = diff / 1000;
 
         this.frames.push(fps);
         if (this.frames.length > MEAN_FRAMES_SIZE) {
@@ -28,17 +28,15 @@ const fps = new class {
     }
 }
 
-const frameTime = new class {
-    constructor() {
-        this.mean = 0;
-        this.last = 0;
-        this.frames = [];
-        this.startTime = performance.now();
-    }
+const frameTime =  {
+    mean: 0,
+    last: 0,
+    frames: [],
+    startTime:  performance.now(),
 
     start() {
         this.startTime = performance.now();
-    }
+    },
 
     stop() {
         if (window.paused) return;
@@ -57,17 +55,15 @@ const frameTime = new class {
     }
 }
 
-const renderTime = new class {
-    constructor() {
-        this.mean = 0;
-        this.last = 0;
-        this.frames = [];
-        this.startTime = performance.now();
-    }
+const renderTime = {
+    mean: 0,
+    last: 0,
+    frames: [],
+    startTime:  performance.now(),
 
     start() {
         this.startTime = performance.now();
-    }
+    },
 
     stop() {
         if (window.paused) return;
@@ -86,17 +82,15 @@ const renderTime = new class {
     }
 }
 
-const tickTime = new class {
-    constructor() {
-        this.mean = 0;
-        this.last = 0;
-        this.frames = [];
-        this.startTime = performance.now();
-    }
+const tickTime = {
+    mean: 0,
+    last: 0,
+    frames: [],
+    startTime:  performance.now(),
 
     start() {
         this.startTime = performance.now();
-    }
+    },
 
     stop() {
         const now = performance.now();

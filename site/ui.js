@@ -2,7 +2,7 @@ import {tickTime} from "./performance";
 
 var $ = require( "jquery" );
 
-import { width, height, map, nextTick } from "./main.js";
+import {config, createMap, map, nextTick} from "./main.js";
 import { Element } from "./node_modules/engine/engine.js";
 
 const canvas = document.getElementById("canvas");
@@ -10,6 +10,7 @@ const canvas = document.getElementById("canvas");
 let selectedElement = Element.Sand;
 
 let paused = false;
+let createButton = $('#create')
 let playButton = $('#play')
 let pauseButton = $('#pause')
 let nextFrameButton = $('#nextFrame')
@@ -17,6 +18,19 @@ let nextFrameButton = $('#nextFrame')
 playButton.hide();
 nextFrameButton.addClass("disabled");
 
+$('document').ready(function(){
+    updateCreateForm();
+});
+
+createButton.click(() => {
+    config.width = clamp($('#configWidth').val(), 64, 512);
+    config.height = clamp($('#configHeight').val(), 64, 512);
+    config.gravity = clamp($('#configGravity').val(), -1, 1);
+    config.max_velocity = clamp($('#configMaxVelocity').val(), 0, 100);
+
+    createMap()
+    updateCreateForm();
+});
 playButton.click(() => togglePause());
 pauseButton.click(() => togglePause());
 
@@ -29,6 +43,13 @@ nextFrameButton.click(() => {
 });
 
 $('#reset').click(() => map.clear());
+
+const updateCreateForm = () => {
+    $('#configWidth').val(config.width);
+    $('#configHeight').val(config.height);
+    $('#configGravity').val(config.gravity);
+    $('#configMaxVelocity').val(config.max_velocity);
+}
 
 const togglePause = () => {
     paused = !paused;
@@ -93,8 +114,8 @@ const paint = event => {
     const canvasLeft = (event.clientX - boundingRect.left) * scaleX;
     const canvasTop = (event.clientY - boundingRect.top) * scaleY;
 
-    const x = Math.min(Math.floor(canvasLeft), width - 1);
-    const y = Math.min(Math.floor(canvasTop), height - 1);
+    const x = Math.max(Math.min(Math.floor(canvasLeft), config.width - 1), 0);
+    const y = Math.max(Math.min(Math.floor(canvasTop), config.height - 1), 0);
 
     map.insert(x, y, selectedElement);
 };
@@ -155,4 +176,8 @@ const scale = (a, s) => {
 
 const magnitude = a => {
     return Math.sqrt(Math.pow(a.clientX, 2) + Math.pow(a.clientY, 2), 2);
+};
+
+const clamp = function(value, min, max) {
+    return Math.min(Math.max(value, min), max);
 };

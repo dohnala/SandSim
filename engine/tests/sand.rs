@@ -1,4 +1,4 @@
-use engine::map::Map;
+use engine::map::{Map, MapConfig};
 use engine::element::Element;
 
 /*
@@ -10,22 +10,22 @@ use engine::element::Element;
  */
 #[test]
 fn test_sand_move_down() {
-    let mut map = Map::new(3, 3);
+    let mut map = Map::new(MapConfig::new(3, 3, 0.2, 5f32));
 
     map.insert(1, 1, Element::Sand);
     map.tick();
 
-    assert_eq!(map.get_pixel_state(0, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 0).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 1).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 2).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 2).element(), Element::Sand);
-    assert_eq!(map.get_pixel_state(2, 2).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 2).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(2, 2).element(), Element::Empty);
 }
 
 /*
@@ -37,22 +37,22 @@ fn test_sand_move_down() {
  */
 #[test]
 fn test_sand_move_at_map_boundary() {
-    let mut map = Map::new(3, 3);
+    let mut map = Map::new(MapConfig::new(3, 3, 0.2, 5f32));
 
     map.insert(1, 2, Element::Sand);
     map.tick();
 
-    assert_eq!(map.get_pixel_state(0, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 0).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 1).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 2).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 2).element(), Element::Sand);
-    assert_eq!(map.get_pixel_state(2, 2).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 2).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(2, 2).element(), Element::Empty);
 }
 
 /*
@@ -65,28 +65,31 @@ fn test_sand_move_at_map_boundary() {
  */
 #[test]
 fn test_sand_move_random_diagonal() {
-    let mut map = Map::new(3, 3);
+    let mut map = Map::new(MapConfig::new(3, 3, 0.2, 5f32));
 
     map.insert(1, 1, Element::Sand);
     map.insert(1, 2, Element::Sand);
-    map.tick();
 
-    assert_eq!(map.get_pixel_state(0, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 0).element(), Element::Empty);
-
-    assert_eq!(map.get_pixel_state(0, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 1).element(), Element::Empty);
-
-    if map.get_pixel_state(0, 2).element() == Element::Sand {
-        assert_eq!(map.get_pixel_state(2, 2).element(), Element::Empty);
-    } else {
-        assert_eq!(map.get_pixel_state(0, 2).element(), Element::Empty);
-        assert_eq!(map.get_pixel_state(2, 2).element(), Element::Sand);
+    loop {
+        map.tick();
     }
 
-    assert_eq!(map.get_pixel_state(1, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(0, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 0).element(), Element::Empty);
+
+    assert_eq!(map.pixel_state(0, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 1).element(), Element::Empty);
+
+    if map.pixel_state(0, 2).element() == Element::Sand {
+        assert_eq!(map.pixel_state(2, 2).element(), Element::Empty);
+    } else {
+        assert_eq!(map.pixel_state(0, 2).element(), Element::Empty);
+        assert_eq!(map.pixel_state(2, 2).element(), Element::Sand);
+    }
+
+    assert_eq!(map.pixel_state(1, 2).element(), Element::Sand);
 
 }
 
@@ -100,24 +103,24 @@ fn test_sand_move_random_diagonal() {
  */
 #[test]
 fn test_sand_move_down_left() {
-    let mut map = Map::new(3, 3);
+    let mut map = Map::new(MapConfig::new(3, 3, 0.2, 5f32));
 
     map.insert(1, 1, Element::Sand);
     map.insert(1, 2, Element::Sand);
     map.insert(2, 2, Element::Sand);
     map.tick();
 
-    assert_eq!(map.get_pixel_state(0, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 0).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 1).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 2).element(), Element::Sand);
-    assert_eq!(map.get_pixel_state(1, 2).element(), Element::Sand);
-    assert_eq!(map.get_pixel_state(2, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(0, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(1, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(2, 2).element(), Element::Sand);
 }
 
 /*
@@ -130,24 +133,24 @@ fn test_sand_move_down_left() {
  */
 #[test]
 fn test_sand_move_down_right() {
-    let mut map = Map::new(3, 3);
+    let mut map = Map::new(MapConfig::new(3, 3, 0.2, 5f32));
 
     map.insert(1, 1, Element::Sand);
     map.insert(0, 2, Element::Sand);
     map.insert(1, 2, Element::Sand);
     map.tick();
 
-    assert_eq!(map.get_pixel_state(0, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 0).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 1).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 2).element(), Element::Sand);
-    assert_eq!(map.get_pixel_state(1, 2).element(), Element::Sand);
-    assert_eq!(map.get_pixel_state(2, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(0, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(1, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(2, 2).element(), Element::Sand);
 }
 
 /*
@@ -159,7 +162,7 @@ fn test_sand_move_down_right() {
  */
 #[test]
 fn test_sand_not_move() {
-    let mut map = Map::new(3, 3);
+    let mut map = Map::new(MapConfig::new(3, 3, 0.2, 5f32));
 
     map.insert(1, 1, Element::Sand);
     map.insert(0, 2, Element::Sand);
@@ -167,15 +170,15 @@ fn test_sand_not_move() {
     map.insert(2, 2, Element::Sand);
     map.tick();
 
-    assert_eq!(map.get_pixel_state(0, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 0).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(2, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 0).element(), Element::Empty);
+    assert_eq!(map.pixel_state(2, 0).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 1).element(), Element::Empty);
-    assert_eq!(map.get_pixel_state(1, 1).element(), Element::Sand);
-    assert_eq!(map.get_pixel_state(2, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(0, 1).element(), Element::Empty);
+    assert_eq!(map.pixel_state(1, 1).element(), Element::Sand);
+    assert_eq!(map.pixel_state(2, 1).element(), Element::Empty);
 
-    assert_eq!(map.get_pixel_state(0, 2).element(), Element::Sand);
-    assert_eq!(map.get_pixel_state(1, 2).element(), Element::Sand);
-    assert_eq!(map.get_pixel_state(2, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(0, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(1, 2).element(), Element::Sand);
+    assert_eq!(map.pixel_state(2, 2).element(), Element::Sand);
 }
