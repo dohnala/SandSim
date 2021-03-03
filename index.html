@@ -12,7 +12,33 @@
                 <div class="col-md-auto">
                     <canvas id="canvas"></canvas>
                 </div>
-                <div class="col-md-auto" id="debug">
+                <div id="debug">
+                    <div id="create-form" class="row debug-panel">
+                        <div class="col">
+                            <form>
+                                <div class="form-row">
+                                    <div class="form-group ">
+                                        <label for="configWidth">Width</label>
+                                        <input type="number" min="64" max="512" class="form-control form-control-sm" id="configWidth">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="configHeight">Height</label>
+                                        <input type="number" min="64" max="512" class="form-control form-control-sm" id="configHeight">
+                                    </div>
+                                    <div class="form-group ">
+                                        <label for="configGravity">Gravity</label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm" id="configGravity">
+                                    </div>
+                                    <div class="form-group ">
+                                        <label for="configMaxVelocity">Max velocity</label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm" id="configMaxVelocity">
+                                    </div>
+                                </div>
+                                <a id ="create" href="#" class="btn btn-primary btn-sm">Create new map</a>
+                            </form>
+                        </div>
+                    </div>
+
                     <div id="actions" class="row debug-panel">
                         <div class="col-md-auto px-1">
                             <a id="play" href="#" class="btn btn-primary btn-sm">
@@ -89,5 +115,5 @@
                 </div>
             </div>
         </div>
-    <script type="text/javascript" src="/SandSim/main.611f0460d000d810ef86.js"></script></body>
+    <script type="text/javascript" src="/SandSim/main.e457fd1bd945f1d61372.js"></script></body>
 </html>
