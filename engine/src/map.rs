@@ -340,7 +340,7 @@ impl<'a> MapApi<'a> {
                 let result = move_f(pixel, self, &MoveContext::new(
                     0,
                     y * sign_y,
-                    contact,
+                    &contact,
                     y == 1,
                     y == velocity_y,
                     last_valid_x,
@@ -380,7 +380,7 @@ impl<'a> MapApi<'a> {
         return move_f(pixel, self, &MoveContext::new(
             context.x + direction_x,
             context.y + direction_y,
-            contact,
+            &contact,
             false,
             true,
             context.last_valid_x,
@@ -403,20 +403,20 @@ impl<'a> MapApi<'a> {
     }
 }
 
-pub struct MoveContext {
+pub struct MoveContext<'a> {
     pub x: i32,
     pub y: i32,
-    pub contact: PixelState,
+    pub contact: &'a PixelState,
     pub first_move: bool,
     pub last_move: bool,
     pub last_valid_x: i32,
     pub last_valid_y: i32,
 }
 
-impl MoveContext {
+impl<'a> MoveContext<'a> {
     pub fn new(x: i32,
                y: i32,
-               contact: PixelState,
+               contact: &PixelState,
                first_move: bool,
                last_move: bool,
                last_valid_x: i32,
