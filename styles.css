@@ -61,8 +61,21 @@ table {
     text-align: center;
 }
 
+#actions i {
+    font-style: normal;
+}
+
 #painting label {
     margin-bottom: 0;
+}
+
+.table-sm {
+    margin: 0 !important;
+}
+
+.table-sm th, .table-sm td {
+    padding-bottom: 0 !important;
+    padding-top: 0 !important;
 }
 
 .debug-panel {
