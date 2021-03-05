@@ -160,17 +160,14 @@ impl Map {
         }
     }
 
-    // Inserts a new pixel of given element at x,y
-    pub fn insert(&mut self, x: i32, y: i32, element: Element) {
-        if self.pixel_state(x, y).element() == Element::Empty || element == Element::Empty {
-            let index = self.index(x, y);
-
-            self.pixels[index] = Pixel::new(element);
-            self.pixel_states[index] = PixelState {
-                element,
-                velocity_y: 0f32,
-                clock_flag: self.clock_flag,
-            };
+    // Inserts a new pixels of given element in radius from x,y
+    pub fn insert(&mut self, x: i32, y: i32, element: Element, radius: i32) {
+        for i in -radius..=radius {
+            for j in -radius..=radius {
+                if i*i + j*j <= radius*radius {
+                    self.insert_pixel(x+i, y+j, element);
+                }
+            }
         }
     }
 
@@ -183,7 +180,7 @@ impl Map {
             for y in 0..self.config.height {
                 let index = self.index(x, y);
                 self.pixels[index] = EMPTY_PIXEL;
-                self.pixel_states[index] = EMPTY_PIXEL_STATE
+                self.pixel_states[index] = EMPTY_PIXEL_STATE;
             }
         }
     }
@@ -257,6 +254,20 @@ impl Map {
             Element::Empty => false,
             Element::Wall => false,
             _ => pixel.clock_flag() != api.map.clock_flag
+        }
+    }
+
+    // Inserts a new pixel of given element at x,y
+    fn insert_pixel(&mut self, x: i32, y: i32, element: Element) {
+        if self.pixel_state(x, y).element() == Element::Empty || element == Element::Empty {
+            let index = self.index(x, y);
+
+            self.pixels[index] = Pixel::new(element);
+            self.pixel_states[index] = PixelState {
+                element,
+                velocity_y: 0f32,
+                clock_flag: self.clock_flag,
+            };
         }
     }
 }

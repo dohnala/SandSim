@@ -1,5 +1,4 @@
 import {config, createMap, map, nextTick} from "./main.js";
-import { Element } from "./node_modules/engine/engine.js";
 import {elements} from "./vars";
 import {tickTime} from "./performance";
 
@@ -7,27 +6,15 @@ var $ = require( "jquery" );
 
 const canvas = document.getElementById("canvas");
 
-let selectedElement = null;
-let inspectPixelPosition = null;
-
-let paused = false;
-let createButton = $('#create');
-let playButton = $('#play');
-let pauseButton = $('#pause');
-let nextFrameButton = $('#nextFrame');
-let resetButton = $('#reset');
-let inspectCheckBox = $('#inspectCheck');
-let inspectDetails = $('#inspectDetails');
-
-playButton.hide();
-nextFrameButton.addClass("disabled");
-inspectDetails.hide();
-
 $('document').ready(function(){
-    updateCreateForm();
+    updateCreateForm()
     addElements();
-    bindKeyPressListeners();
 });
+
+// -----------------------------------------------------------------------------------------------
+//  CREATE MAP
+// -----------------------------------------------------------------------------------------------
+let createButton = $('#create');
 
 createButton.click(() => {
     config.width = clamp($('#configWidth').val(), 64, 512);
@@ -39,48 +26,44 @@ createButton.click(() => {
     updateCreateForm();
 });
 
-playButton.click(() => togglePause());
-pauseButton.click(() => togglePause());
-nextFrameButton.click(() => nextFrame());
-resetButton.click(() => resetMap());
-
-let inspecting = false;
-let inspectRepeat = null;
-
-inspectCheckBox.click(() => {
-    if (inspectCheckBox.prop('checked')) {
-        inspecting = true;
-        clearInterval(inspectRepeat);
-        inspectRepeat = window.setInterval(() => inspectPixel(), 100);
-    } else {
-        inspecting = false;
-        clearInterval(inspectRepeat);
-    }
-})
-
-const bindKeyPressListeners = () => {
-    $('body').keypress(event => {
-        // P
-        if (event.keyCode === 112) {
-            togglePause();
-        }
-        // F
-        else if (event.keyCode === 102) {
-            nextFrame();
-        }
-        // R
-        else if (event.keyCode === 114) {
-            resetMap();
-        }
-    })
-};
-
 const updateCreateForm = () => {
     $('#configWidth').val(config.width);
     $('#configHeight').val(config.height);
     $('#configGravity').val(config.gravity);
     $('#configMaxVelocity').val(config.max_velocity);
 }
+
+// -----------------------------------------------------------------------------------------------
+//  ACTIONS
+// -----------------------------------------------------------------------------------------------
+let paused = false;
+let playButton = $('#play');
+let pauseButton = $('#pause');
+let nextFrameButton = $('#nextFrame');
+let resetButton = $('#reset');
+
+playButton.hide();
+nextFrameButton.addClass("disabled");
+
+playButton.click(() => togglePause());
+pauseButton.click(() => togglePause());
+nextFrameButton.click(() => nextFrame());
+resetButton.click(() => resetMap());
+
+$('body').keypress(event => {
+    // P
+    if (event.keyCode === 112) {
+        togglePause();
+    }
+    // F
+    else if (event.keyCode === 102) {
+        nextFrame();
+    }
+    // R
+    else if (event.keyCode === 114) {
+        resetMap();
+    }
+})
 
 const togglePause = () => {
     paused = !paused;
@@ -109,10 +92,107 @@ const resetMap = () => {
     map.clear();
 }
 
-$('#emptyElement').change(() => selectedElement = Element.Empty);
-$('#wallElement').change(() => selectedElement = Element.Wall);
-$('#sandElement').change(() => selectedElement = Element.Sand);
+// -----------------------------------------------------------------------------------------------
+//  ELEMENTS
+// -----------------------------------------------------------------------------------------------
+let selectedElement = null;
 
+const addElements = () => {
+    for (let key in elements) {
+        if (elements.hasOwnProperty(key)) {
+            let radio = `
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="element_${key}">
+                    <label class="form-check-label" for="element_${key}">
+                        <i class="bi bi-square-fill" style="color: ${elements[key].value.color}"></i>
+                        <label>${elements[key].value.name}</label>
+                    </label>
+                </div>`;
+
+            $('#painting').append(radio);
+            $('#element_' + key + '').change(() => selectedElement = Number(key));
+        }
+    }
+
+    // Select Sand by default
+    selectedElement = 2;
+    $('#element_2').attr('checked', true)
+}
+
+// -----------------------------------------------------------------------------------------------
+//  BRUSH SETTINGS
+// -----------------------------------------------------------------------------------------------
+let brushSize = {
+    value: 0,
+    step: 1,
+    min: 0,
+    max: 5
+}
+
+let brushSizeSlider = $('#brushSize');
+
+brushSizeSlider.on("change", function () {
+    brushSize.value = clamp(Number($(this).val()), brushSize.min, brushSize.max);
+});
+
+$(window).bind('mousewheel DOMMouseScroll', function(event){
+    if (event.originalEvent.wheelDelta > 0 || event.originalEvent.detail < 0) {
+        brushSize.value = clamp(brushSize.value + brushSize.step, brushSize.min, brushSize.max);
+        brushSizeSlider.val(brushSize.value);
+    } else {
+        brushSize.value = clamp(brushSize.value - brushSize.step, brushSize.min, brushSize.max);
+        brushSizeSlider.val(brushSize.value);
+    }
+});
+
+// -----------------------------------------------------------------------------------------------
+//  PIXEL INSPECTION
+// -----------------------------------------------------------------------------------------------
+let inspectPixelPosition = null;
+let inspecting = false;
+let inspectRepeat = null;
+let inspectCheckBox = $('#inspectCheck');
+let inspectDetails = $('#inspectDetails');
+
+inspectDetails.hide();
+
+inspectCheckBox.click(() => {
+    if (inspectCheckBox.prop('checked')) {
+        inspecting = true;
+        clearInterval(inspectRepeat);
+        inspectRepeat = window.setInterval(() => inspectPixel(), 100);
+    } else {
+        inspecting = false;
+        clearInterval(inspectRepeat);
+    }
+})
+
+const findInspectPixelPosition = event => {
+    if (inspectCheckBox.prop('checked')) {
+        inspectPixelPosition = getPixelPosition(event);
+    } else {
+        inspectPixelPosition = null;
+    }
+}
+
+const inspectPixel = event => {
+    if (inspecting && inspectPixelPosition) {
+        let pixel = map.pixel_state(inspectPixelPosition[0], inspectPixelPosition[1])
+
+        if (pixel) {
+            inspectDetails.show();
+            $('#inspectElement').text(elements[pixel.element()].value.name);
+            $('#inspectPosition').text("(" + inspectPixelPosition[0] + ", " + inspectPixelPosition[1] + ")");
+            $('#inspectVelocity').text("(0, " + pixel.velocity_y() + ")");
+        }
+    } else {
+        inspectDetails.hide();
+    }
+}
+
+// -----------------------------------------------------------------------------------------------
+//  PAINTING
+// -----------------------------------------------------------------------------------------------
 let painting = false;
 let lastPaint = null;
 let repeat = null;
@@ -154,7 +234,7 @@ const paint = event => {
 
     let pixelPosition = getPixelPosition(event);
 
-    map.insert(pixelPosition[0], pixelPosition[1], selectedElement);
+    map.insert(pixelPosition[0], pixelPosition[1], selectedElement, brushSize.value);
 };
 
 const smoothPaint = event => {
@@ -187,50 +267,9 @@ const smoothPaint = event => {
     lastPaint = event;
 }
 
-const findInspectPixelPosition = event => {
-    if (inspectCheckBox.prop('checked')) {
-        inspectPixelPosition = getPixelPosition(event);
-    } else {
-        inspectPixelPosition = null;
-    }
-}
-
-const inspectPixel = event => {
-    if (inspecting && inspectPixelPosition) {
-        let pixel = map.pixel_state(inspectPixelPosition[0], inspectPixelPosition[1])
-
-        if (pixel) {
-            inspectDetails.show();
-            $('#inspectElement').text(elements[pixel.element()].value.name);
-            $('#inspectPosition').text("(" + inspectPixelPosition[0] + ", " + inspectPixelPosition[1] + ")");
-            $('#inspectVelocity').text("(0, " + pixel.velocity_y() + ")");
-        }
-    } else {
-        inspectDetails.hide();
-    }
-}
-
-const addElements = () => {
-    for (let key in elements) {
-        if (elements.hasOwnProperty(key)) {
-            let radio = `
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="flexRadioDefault" id="element_${key}">
-                    <label class="form-check-label" for="element_${key}">
-                        <i class="bi bi-square-fill" style="color: ${elements[key].value.color}"></i>
-                        <label>${elements[key].value.name}</label>
-                    </label>
-                </div>`;
-
-            $('#painting').append(radio);
-            $('#element_' + key + '').change(() => selectedElement = Number(key));
-        }
-    }
-
-    // Select Sand by default
-    selectedElement = 2;
-    $('#element_2').attr('checked', true)
-}
+// -----------------------------------------------------------------------------------------------
+//  UTILS
+// -----------------------------------------------------------------------------------------------
 
 const getPixelPosition = event => {
     const boundingRect = canvas.getBoundingClientRect();
