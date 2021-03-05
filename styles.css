@@ -65,8 +65,29 @@ table {
     font-style: normal;
 }
 
-#painting label {
+#painting label, #brushSettings label {
     margin-bottom: 0;
+}
+
+#painting input[type=radio] {
+    height: 10px;
+}
+
+#brushSettings input[type=range] {
+    height: 5px;
+    width: 100px;
+}
+
+#brushSize {
+    margin-left: 21px;
+}
+
+#brushSettings input[type=range]::-webkit-slider-runnable-track {
+
+}
+
+#brushSettings input[type=range]::-webkit-slider-thumb {
+
 }
 
 .table-sm {
