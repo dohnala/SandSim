@@ -14,12 +14,14 @@ let createButton = $('#create')
 let playButton = $('#play')
 let pauseButton = $('#pause')
 let nextFrameButton = $('#nextFrame')
+let resetButton = $('#reset')
 
 playButton.hide();
 nextFrameButton.addClass("disabled");
 
 $('document').ready(function(){
     updateCreateForm();
+    bindKeyPressListeners();
 });
 
 createButton.click(() => {
@@ -31,18 +33,28 @@ createButton.click(() => {
     createMap()
     updateCreateForm();
 });
+
 playButton.click(() => togglePause());
 pauseButton.click(() => togglePause());
+nextFrameButton.click(() => nextFrame());
+resetButton.click(() => resetMap());
 
-nextFrameButton.click(() => {
-    if (paused) {
-        tickTime.start();
-        nextTick();
-        tickTime.stop();
-    }
-});
-
-$('#reset').click(() => map.clear());
+const bindKeyPressListeners = () => {
+    $('body').keypress(event => {
+        // P
+        if (event.keyCode === 112) {
+            togglePause();
+        }
+        // F
+        else if (event.keyCode === 102) {
+            nextFrame();
+        }
+        // R
+        else if (event.keyCode === 114) {
+            resetMap();
+        }
+    })
+};
 
 const updateCreateForm = () => {
     $('#configWidth').val(config.width);
@@ -64,6 +76,18 @@ const togglePause = () => {
         pauseButton.show();
         nextFrameButton.addClass("disabled");
     }
+}
+
+const nextFrame = () => {
+    if (paused) {
+        tickTime.start();
+        nextTick();
+        tickTime.stop();
+    }
+}
+
+const resetMap = () => {
+    map.clear();
 }
 
 $('#emptyElement').change(() => selectedElement = Element.Empty);

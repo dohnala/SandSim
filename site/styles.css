@@ -61,6 +61,10 @@ table {
     text-align: center;
 }
 
+#actions i {
+    font-style: normal;
+}
+
 #painting label {
     margin-bottom: 0;
 }
