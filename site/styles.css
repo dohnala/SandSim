@@ -47,6 +47,10 @@ table {
     width: 75px;
 }
 
+#create-form select {
+    width: 100px;
+}
+
 #canvas {
     width: 800px;
     height: 800px;

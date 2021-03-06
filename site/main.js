@@ -1,4 +1,4 @@
-import {Map, MapConfig} from "./node_modules/engine/engine.js";
+import {Map, MapConfig, MapGenerator} from "./node_modules/engine/engine.js";
 import { startWebGL } from "./render";
 import {} from "./ui";
 import {fps, pixelsProcessed, renderTime, tickTime} from "./performance";
@@ -7,7 +7,8 @@ let config = {
     width: 128,
     height: 128,
     gravity: 0.2,
-    max_velocity: 5
+    max_velocity: 5,
+    generator: MapGenerator.EMPTY,
 }
 
 let map;
@@ -20,7 +21,12 @@ const generateSeed = () => {
 }
 
 const createMap = () => {
-    map = Map.new(MapConfig.new(config.width, config.height, config.gravity, config.max_velocity, generateSeed()));
+    map = Map.new(MapConfig.new(
+        config.width,
+        config.height,
+        config.gravity,
+        config.max_velocity,
+        generateSeed()), config.generator);
     canvas.width = config.width * Math.ceil(window.devicePixelRatio);
     canvas.height = config.height * Math.ceil(window.devicePixelRatio);
     drawMap = startWebGL({ canvas, map });

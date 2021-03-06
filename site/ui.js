@@ -1,5 +1,5 @@
 import {config, createMap, map, nextTick} from "./main.js";
-import {elements} from "./vars";
+import {elements, mapGenerators, mapGeneratorByName} from "./vars";
 import {pixelsProcessed, tickTime} from "./performance";
 
 var $ = require( "jquery" );
@@ -7,8 +7,10 @@ var $ = require( "jquery" );
 const canvas = document.getElementById("canvas");
 
 $('document').ready(function(){
-    updateCreateForm()
+    addMapGenerators();
     addElements();
+    updateCreateForm()
+
 });
 
 // -----------------------------------------------------------------------------------------------
@@ -21,6 +23,7 @@ createButton.click(() => {
     config.height = clamp($('#configHeight').val(), 64, 512);
     config.gravity = clamp($('#configGravity').val(), -1, 1);
     config.max_velocity = clamp($('#configMaxVelocity').val(), 0, 100);
+    config.generator = mapGeneratorByName($('#configGenerator').val());
 
     createMap()
     updateCreateForm();
@@ -31,6 +34,17 @@ const updateCreateForm = () => {
     $('#configHeight').val(config.height);
     $('#configGravity').val(config.gravity);
     $('#configMaxVelocity').val(config.max_velocity);
+    $('#configGenerator').val(mapGenerators[config.generator].value.name);
+}
+
+const addMapGenerators = () => {
+    for (let key in mapGenerators) {
+        if (mapGenerators.hasOwnProperty(key)) {
+            let option = `<option>${mapGenerators[key].value.name}</option>`;
+
+            $('#configGenerator').append(option);
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------------------------
