@@ -1,6 +1,6 @@
 import {config, createMap, map, nextTick} from "./main.js";
 import {elements} from "./vars";
-import {tickTime} from "./performance";
+import {pixelsProcessed, tickTime} from "./performance";
 
 var $ = require( "jquery" );
 
@@ -83,7 +83,7 @@ const togglePause = () => {
 const nextFrame = () => {
     if (paused) {
         tickTime.start();
-        nextTick();
+        pixelsProcessed.measure(nextTick());
         tickTime.stop();
     }
 }

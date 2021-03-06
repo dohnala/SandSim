@@ -1,7 +1,7 @@
 import {Map, MapConfig} from "./node_modules/engine/engine.js";
 import { startWebGL } from "./render";
 import {} from "./ui";
-import {fps, frameTime, renderTime, tickTime} from "./performance";
+import {fps, pixelsProcessed, renderTime, tickTime} from "./performance";
 
 let config = {
     width: 128,
@@ -30,11 +30,10 @@ createMap();
 
 const renderLoop = () => {
     fps.measure();
-    frameTime.start();
 
     if (!window.paused) {
         tickTime.start();
-        nextTick();
+        pixelsProcessed.measure(nextTick());
         tickTime.stop();
     }
 
@@ -42,13 +41,11 @@ const renderLoop = () => {
     drawMap();
     renderTime.stop();
 
-    frameTime.stop();
-
     window.animationId = requestAnimationFrame(renderLoop);
 };
 
 const nextTick = () => {
-    map.tick(fps.delta);
+    return map.tick(fps.delta);
 }
 
 renderLoop();
