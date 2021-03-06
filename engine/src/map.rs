@@ -185,9 +185,11 @@ impl Map {
         }
     }
 
-    // Simulates a tick and process all pixels
-    pub fn tick(&mut self) {
+    // Simulates a tick and return number of processed pixels
+    pub fn tick(&mut self) -> u32 {
         self.clock_flag = !self.clock_flag;
+
+        let mut pixels = 0;
 
         for x in 0..self.config.width {
             // process pixels from bottom
@@ -199,13 +201,15 @@ impl Map {
                     x
                 };
 
-                Map::update_pixel(
+                pixels += Map::update_pixel(
                     &mut self.pixel_state(scan_x, y),
-                    &mut MapApi::new(scan_x, y, self));
+                    &mut MapApi::new(scan_x, y, self)) as u32;
             }
         }
 
         self.generation = self.generation.wrapping_add(1);
+
+        return pixels;
     }
 
     pub fn width(&self) -> i32 {
@@ -230,8 +234,11 @@ impl Map {
     }
 
     pub fn pixel_state(&self, x: i32, y: i32) -> PixelState {
-        let i = self.index(x, y);
-        return self.pixel_states[i];
+        if x < 0 || x > self.config.width - 1 || y < 0 || y > self.config.height - 1 {
+            return WALL_PIXEL_STATE;
+        }
+
+        return self.pixel_states[self.index(x, y)];
     }
 }
 
@@ -240,11 +247,13 @@ impl Map {
         (x + (y * self.config.width)) as usize
     }
 
-    fn update_pixel(pixel: &mut PixelState, api: &mut MapApi) {
+    fn update_pixel(pixel: &mut PixelState, api: &mut MapApi) -> bool {
         if Map::can_update(pixel, api) {
             pixel.clock_flag = api.map.clock_flag;
             Element::update(pixel, api);
+            return true;
         }
+        return false;
     }
 
     // Return true if a pixel can be updated
@@ -308,10 +317,6 @@ impl<'a> MapApi<'a> {
     pub fn pixel(&mut self, dx: i32, dy: i32) -> PixelState {
         let nx = self.x + dx;
         let ny = self.y + dy;
-
-        if nx < 0 || nx > self.map.config.width - 1 || ny < 0 || ny > self.map.config.height - 1 {
-            return WALL_PIXEL_STATE;
-        }
 
         self.map.pixel_state(nx, ny)
     }
