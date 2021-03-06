@@ -102,6 +102,12 @@ const pixelsProcessed = {
         }
 
         this.mean = measureMean(this.frames);
+    },
+
+    reset() {
+        this.mean = 0;
+        this.last = 0;
+        this.frames = [];
     }
 }
 

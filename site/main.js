@@ -30,6 +30,8 @@ const createMap = () => {
     canvas.width = config.width * Math.ceil(window.devicePixelRatio);
     canvas.height = config.height * Math.ceil(window.devicePixelRatio);
     drawMap = startWebGL({ canvas, map });
+
+    pixelsProcessed.reset();
 }
 
 createMap();
