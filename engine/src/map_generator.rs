@@ -1,6 +1,7 @@
 use wasm_bindgen::prelude::*;
 use crate::map::{PixelState, MapConfig, EMPTY_PIXEL_STATE, WALL_PIXEL_STATE};
 use crate::rand::Random;
+use crate::element::Element;
 
 // Represents a map generator
 #[wasm_bindgen]
@@ -31,23 +32,61 @@ fn generate_empty_map(config: &MapConfig) -> Vec<PixelState> {
 
 // Generates a new cave map
 fn generate_cave_map(config: &MapConfig) -> Vec<PixelState> {
-    // You should return a 1D Vec<PixelState> of length config.width * config.height
-    // where each item can be either EMPTY_PIXEL_STATE or WALL_PIXEL_STATE
+    // parameters
+    let border_size = 3;
+    let wall_density = 0.38;
+    let wall_threshold: u8 = 4;
+    let smooth_iterations: u8 = 5;
 
-    // To compute index in this 1D Vec from x,y, use index method below
-
-    // NOTE: All parameter of this generator should be hardcoded in this method for now
-    // we will improve that in the future
-
-    let wall_density = 0.5;
     let mut random = Random::new(config.seed);
 
-    return (0..config.width * config.height)
-        .map(|_i| {
-            if random.next() <= wall_density {WALL_PIXEL_STATE} else {EMPTY_PIXEL_STATE}
-        })
-        .collect();
+    // Create vector filled will walls
+    let mut pixels = vec![WALL_PIXEL_STATE; (config.width * config.height) as usize];
+
+    // Generate random pixels, but leave the border with walls
+    for x in border_size .. config.width - border_size {
+        for y in border_size..config.height - border_size {
+            pixels[index(x, y, config)] = if random.next() <= wall_density {
+                WALL_PIXEL_STATE
+            } else {
+                EMPTY_PIXEL_STATE
+            }
+        }
+    }
+
+    for _ in 0 .. smooth_iterations {
+        smooth_map(config, &mut pixels, border_size, wall_threshold);
+    }
+
+    return pixels;
 }
+
+// Create rooms
+fn smooth_map(config: &MapConfig, pixels: &mut Vec<PixelState>, border_size: i32, wall_threshold : u8) {
+    // Do not process borders
+    for x in border_size .. config.width - border_size {
+        for y in border_size .. config.height - border_size {
+            let mut surrounding_walls: u8 = 0;
+
+            for neighbour_x in x-1..=x+1 {
+                for neighbour_y in y-1..=y+1 {
+                    let index = index(neighbour_x, neighbour_y, config);
+
+                    surrounding_walls += if pixels[index].element() == Element::Wall {1} else {0};
+                }
+            }
+
+            let current_index = index(x, y, config);
+
+            if surrounding_walls > wall_threshold {
+                pixels[current_index] = WALL_PIXEL_STATE;
+            } else if surrounding_walls < wall_threshold {
+                pixels[current_index] = EMPTY_PIXEL_STATE
+            }
+        }
+    }
+}
+
 
 fn index(x: i32, y: i32, config: &MapConfig) -> usize {
     (x + (y * config.width)) as usize
