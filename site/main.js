@@ -26,7 +26,8 @@ const createMap = () => {
         config.height,
         config.gravity,
         config.max_velocity,
-        generateSeed()), config.generator);
+        generateSeed()),
+        Number(config.generator));
     canvas.width = config.width * Math.ceil(window.devicePixelRatio);
     canvas.height = config.height * Math.ceil(window.devicePixelRatio);
     drawMap = startWebGL({ canvas, map });
