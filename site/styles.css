@@ -62,8 +62,9 @@ table {
     margin-top: 4px;
 }
 
-#create {
+#createButtons {
     margin-top: 5px;
+    margin-bottom: 0;
 }
 
 #canvas {
