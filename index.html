@@ -18,12 +18,8 @@
                             <form>
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="configWidth">Width</label>
-                                        <input type="number" min="64" max="512" class="form-control form-control-sm" id="configWidth">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="configHeight">Height</label>
-                                        <input type="number" min="64" max="512" class="form-control form-control-sm" id="configHeight">
+                                        <label for="configSize">Size</label>
+                                        <select id="configSize" class="form-control form-control-sm"></select>
                                     </div>
                                     <div class="form-group ">
                                         <label for="configGravity">Gravity</label>
@@ -35,13 +31,33 @@
                                     </div>
                                 </div>
                                 <div class="form-row">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="configUseChunks">
+                                        <label class="form-check-label" for="configUseChunks">
+                                            Use chunks
+                                        </label>
+                                    </div>
                                     <div class="form-group">
-                                        <label for="configGenerator">Generator</label>
-                                        <select id="configGenerator" class="form-control form-control-sm">
-                                        </select>
+                                        <label for="configChunkSize">Chunk size</label>
+                                        <select id="configChunkSize" class="form-control form-control-sm"></select>
                                     </div>
                                 </div>
-                                <a id ="create" href="#" class="btn btn-primary btn-sm">Create new map</a>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="configGenerator">Generator</label>
+                                        <select id="configGenerator" class="form-control form-control-sm"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="seed">Seed</label>
+                                        <input type="number" step="1" class="form-control form-control-sm" id="seed">
+                                    </div>
+                                </div>
+                                <div id="createButtons">
+                                    <div class="form-group">
+                                        <a id ="create" href="#" class="btn btn-primary btn-sm">Create new map</a>
+                                        <a id ="generateSeed" href="#" class="btn btn-primary btn-sm">Generate random seed</a>
+                                    </div>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -127,8 +143,19 @@
                             </table>
                         </div>
                     </div>
+
+                    <div class="row debug-panel">
+                        <div class="col-md-auto px-1">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showActiveChunks">
+                                <label class="form-check-label" for="showActiveChunks">
+                                    Show active chunks
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    <script type="text/javascript" src="/SandSim/main.a5ad9a9f2b3e39e3f5d5.js"></script></body>
+    <script type="text/javascript" src="/SandSim/main.b152bd004980be3a7678.js"></script></body>
 </html>

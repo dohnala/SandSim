@@ -33,22 +33,38 @@ table {
 #create-form .form-row {
     margin-left: 0;
     margin-right: 0;
+    margin-bottom: 10px;
 }
 
-#create-form .form-group {
+#create-form .form-group, #create-form .form-check {
     margin-right: 5px;
+    margin-bottom: 0;
 }
 
 #create-form label {
     margin-bottom: 0;
 }
 
-#create-form input {
-    width: 75px;
+#create-form input[type=number] {
+    width: 100px;
+}
+
+#create-form .form-check {
+    width: 100px;
+    padding-top: 23px;
 }
 
 #create-form select {
     width: 100px;
+}
+
+#create-form input[type=checkbox] {
+    margin-top: 4px;
+}
+
+#createButtons {
+    margin-top: 5px;
+    margin-bottom: 0;
 }
 
 #canvas {
