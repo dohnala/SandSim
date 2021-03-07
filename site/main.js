@@ -3,12 +3,17 @@ import { startWebGL } from "./render";
 import {} from "./ui";
 import {fps, pixelsProcessed, renderTime, tickTime} from "./performance";
 
+const generateSeed = () => {
+    return Math.floor(Math.random() * Math.floor(10000));
+}
+
 let config = {
     width: 128,
     height: 128,
     gravity: 0.2,
     max_velocity: 5,
     generator: MapGenerator.EMPTY,
+    seed: 1,
 }
 
 let map;
@@ -16,17 +21,13 @@ let drawMap;
 
 const canvas = document.getElementById("canvas");
 
-const generateSeed = () => {
-    return Math.floor(Math.random() * Math.floor(10000));
-}
-
 const createMap = () => {
     map = Map.new(MapConfig.new(
         config.width,
         config.height,
         config.gravity,
         config.max_velocity,
-        generateSeed()),
+        config.seed),
         Number(config.generator));
     canvas.width = config.width * Math.ceil(window.devicePixelRatio);
     canvas.height = config.height * Math.ceil(window.devicePixelRatio);
@@ -59,4 +60,4 @@ const nextTick = () => {
 
 renderLoop();
 
-export { canvas, config, map, createMap, nextTick};
+export { canvas, config, map, createMap, nextTick, generateSeed};

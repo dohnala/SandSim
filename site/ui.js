@@ -1,4 +1,4 @@
-import {config, createMap, map, nextTick} from "./main.js";
+import {config, createMap, map, nextTick, generateSeed} from "./main.js";
 import {elements, mapGenerators, mapGeneratorByName} from "./vars";
 import {pixelsProcessed, tickTime} from "./performance";
 
@@ -17,6 +17,7 @@ $('document').ready(function(){
 //  CREATE MAP
 // -----------------------------------------------------------------------------------------------
 let createButton = $('#create');
+let generateSeedButton = $('#generateSeed');
 
 createButton.click(() => {
     config.width = clamp($('#configWidth').val(), 64, 512);
@@ -24,8 +25,14 @@ createButton.click(() => {
     config.gravity = clamp($('#configGravity').val(), -1, 1);
     config.max_velocity = clamp($('#configMaxVelocity').val(), 0, 100);
     config.generator = mapGeneratorByName($('#configGenerator').val());
+    config.seed = Number($('#seed').val());
 
-    createMap()
+    createMap();
+    updateCreateForm();
+});
+
+generateSeedButton.click(() => {
+    config.seed = generateSeed();
     updateCreateForm();
 });
 
@@ -35,6 +42,7 @@ const updateCreateForm = () => {
     $('#configGravity').val(config.gravity);
     $('#configMaxVelocity').val(config.max_velocity);
     $('#configGenerator').val(mapGenerators[config.generator].value.name);
+    $('#seed').val(config.seed);
 }
 
 const addMapGenerators = () => {
