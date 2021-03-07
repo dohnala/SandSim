@@ -94,7 +94,7 @@ const pixelsProcessed = {
         this.last = pixels;
 
         lastPixelsProcessedLabel.textContent = window.paused ? `${Math.round(this.last)} 
-        (${percentage(this.last, config.width*config.height)}%)` : "";
+        (${percentage(this.last, config.size*config.size)}%)` : "";
 
         this.frames.push(pixels);
         if (this.frames.length > MEAN_FRAMES_SIZE) {
@@ -130,7 +130,7 @@ const updateLabels = () => {
     meanRenderTimeLabel.textContent = `${Math.round(renderTime.mean)}ms`;
     meanTickTimeLabel.textContent = `${Math.round(tickTime.mean)}ms`;
     meanPixelsProcessedLabel.textContent = `${Math.round(pixelsProcessed.mean)} 
-    (${percentage(Math.round(pixelsProcessed.mean), config.width*config.height)}%)`;
+    (${percentage(Math.round(pixelsProcessed.mean), config.size*config.size)}%)`;
 }
 
 setInterval(updateLabels, 100);

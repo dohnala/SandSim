@@ -102,25 +102,51 @@ pub static WALL_PIXEL_STATE: PixelState = PixelState {
     clock_flag: false,
 };
 
+// Represents a square chunk in the map which can be processed independently
+#[wasm_bindgen]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Chunk {
+    x: i32,
+    y: i32,
+}
+
+#[wasm_bindgen]
+impl Chunk {
+    pub fn new(x: i32, y: i32) -> Chunk {
+        Chunk { x, y }
+    }
+
+    pub fn x(&self) -> i32 {
+        self.x
+    }
+
+    pub fn y(&self) -> i32 {
+        self.y
+    }
+}
+
 // Represents a map configuration
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MapConfig {
-    pub width: i32,
-    pub height: i32,
+    pub size: i32,
     pub gravity: f32,
     pub max_velocity: f32,
+    pub use_chunks: bool,
+    pub chunk_size: i32,
     pub seed: u16,
 }
 
 #[wasm_bindgen]
 impl MapConfig {
-    pub fn new(width: i32, height: i32, gravity: f32, max_velocity: f32, seed: u16) -> MapConfig {
+    pub fn new(size: i32, gravity: f32, max_velocity: f32,
+               use_chunks: bool, chunk_size: i32, seed: u16) -> MapConfig {
         MapConfig {
-            width,
-            height,
+            size,
             gravity,
             max_velocity,
+            use_chunks,
+            chunk_size,
             seed,
         }
     }
@@ -132,6 +158,7 @@ pub struct Map {
     config: MapConfig,
     pixels: Vec<Pixel>,
     pixel_states: Vec<PixelState>,
+    chunks: Vec<Chunk>,
     generation: u8,
     // used to determine which pixels were updated during a tick
     clock_flag: bool,
@@ -168,12 +195,19 @@ impl Map {
             })
             .collect();
 
+        let chunks = if config.use_chunks {
+            Map::generate_chunks(config.size, config.chunk_size)
+        } else {
+            vec![]
+        };
+
         let random = Random::new(config.seed);
 
         Map {
             config,
             pixels,
             pixel_states,
+            chunks,
             generation: 0,
             clock_flag: false,
             random,
@@ -196,8 +230,8 @@ impl Map {
         self.generation = 0;
         self.clock_flag = false;
 
-        for x in 0..self.config.width {
-            for y in 0..self.config.height {
+        for x in 0..self.config.size {
+            for y in 0..self.config.size {
                 let index = self.index(x, y);
                 self.pixels[index] = EMPTY_PIXEL;
                 self.pixel_states[index] = EMPTY_PIXEL_STATE;
@@ -211,12 +245,12 @@ impl Map {
 
         let mut pixels = 0;
 
-        for x in 0..self.config.width {
+        for x in 0..self.config.size {
             // process pixels from bottom
-            for y in (0..self.config.height).rev() {
+            for y in (0..self.config.size).rev() {
                 // process rows from different side each tick
                 let scan_x = if self.generation % 2 == 0 {
-                    self.config.width - (1 + x)
+                    self.config.size - (1 + x)
                 } else {
                     x
                 };
@@ -232,12 +266,8 @@ impl Map {
         return pixels;
     }
 
-    pub fn width(&self) -> i32 {
-        self.config.width
-    }
-
-    pub fn height(&self) -> i32 {
-        self.config.height
+    pub fn size(&self) -> i32 {
+        self.config.size
     }
 
     pub fn generation(&self) -> u8 {
@@ -249,7 +279,7 @@ impl Map {
     }
 
     pub fn pixel(&self, x: i32, y: i32) -> Pixel {
-        if x < 0 || x > self.config.width - 1 || y < 0 || y > self.config.height - 1 {
+        if x < 0 || x > self.config.size - 1 || y < 0 || y > self.config.size - 1 {
             return WALL_PIXEL;
         }
 
@@ -257,17 +287,25 @@ impl Map {
     }
 
     pub fn pixel_state(&self, x: i32, y: i32) -> PixelState {
-        if x < 0 || x > self.config.width - 1 || y < 0 || y > self.config.height - 1 {
+        if x < 0 || x > self.config.size - 1 || y < 0 || y > self.config.size - 1 {
             return WALL_PIXEL_STATE;
         }
 
         return self.pixel_states[self.index(x, y)];
     }
+
+    pub fn chunk(&self, i: usize) -> Chunk {
+        self.chunks[i]
+    }
+
+    pub fn chunks_count(&self) -> usize {
+        self.chunks.len()
+    }
 }
 
 impl Map {
     fn index(&self, x: i32, y: i32) -> usize {
-        (x + (y * self.config.width)) as usize
+        (x + (y * self.config.size)) as usize
     }
 
     fn update_pixel(pixel: &mut PixelState, api: &mut MapApi) -> bool {
@@ -301,6 +339,22 @@ impl Map {
                 clock_flag: self.clock_flag,
             };
         }
+    }
+
+    fn generate_chunks(map_size: i32, chunk_size: i32) -> Vec<Chunk> {
+        return (0..map_size).step_by(chunk_size as usize)
+            .into_iter()
+            .flat_map(|y| {
+                return (0..map_size).step_by(chunk_size as usize)
+                    .into_iter()
+                    .map(move |x| {
+                        Chunk {
+                            x,
+                            y
+                        }
+                    })
+            })
+            .collect();
     }
 }
 
@@ -349,7 +403,7 @@ impl<'a> MapApi<'a> {
         let nx = self.x + dx;
         let ny = self.y + dy;
 
-        if nx < 0 || nx > self.map.config.width - 1 || ny < 0 || ny > self.map.config.height - 1 {
+        if nx < 0 || nx > self.map.config.size - 1 || ny < 0 || ny > self.map.config.size - 1 {
             return;
         }
 

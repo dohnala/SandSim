@@ -4,10 +4,11 @@ import {} from "./ui";
 import {fps, pixelsProcessed, renderTime, tickTime} from "./performance";
 
 let config = {
-    width: 128,
-    height: 128,
+    size: 128,
     gravity: 0.2,
-    max_velocity: 5,
+    maxVelocity: 5,
+    useChunks: true,
+    chunkSize: 16,
     generator: MapGenerator.EMPTY,
 }
 
@@ -22,15 +23,16 @@ const generateSeed = () => {
 
 const createMap = () => {
     map = Map.new(MapConfig.new(
-        config.width,
-        config.height,
+        config.size,
         config.gravity,
-        config.max_velocity,
+        config.maxVelocity,
+        config.useChunks,
+        config.chunkSize,
         generateSeed()),
         Number(config.generator));
-    canvas.width = config.width * Math.ceil(window.devicePixelRatio);
-    canvas.height = config.height * Math.ceil(window.devicePixelRatio);
-    drawMap = startWebGL({ canvas, map });
+    canvas.width = config.size * Math.ceil(window.devicePixelRatio);
+    canvas.height = config.size * Math.ceil(window.devicePixelRatio);
+    drawMap = startWebGL({ canvas, map, config });
 
     pixelsProcessed.reset();
 }

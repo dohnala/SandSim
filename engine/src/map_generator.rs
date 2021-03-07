@@ -23,7 +23,7 @@ impl MapGenerator {
 
 // Generates a new empty map
 fn generate_empty_map(config: &MapConfig) -> Vec<PixelState> {
-    return (0..config.width * config.height)
+    return (0..config.size * config.size)
         .map(|_i| {
             EMPTY_PIXEL_STATE
         })
@@ -41,11 +41,11 @@ fn generate_cave_map(config: &MapConfig) -> Vec<PixelState> {
     let mut random = Random::new(config.seed);
 
     // Create vector filled will walls
-    let mut pixels = vec![WALL_PIXEL_STATE; (config.width * config.height) as usize];
+    let mut pixels = vec![WALL_PIXEL_STATE; (config.size * config.size) as usize];
 
     // Generate random pixels, but leave the border with walls
-    for x in border_size .. config.width - border_size {
-        for y in border_size..config.height - border_size {
+    for x in border_size .. config.size - border_size {
+        for y in border_size .. config.size - border_size {
             pixels[index(x, y, config)] = if random.next() <= wall_density {
                 WALL_PIXEL_STATE
             } else {
@@ -64,8 +64,8 @@ fn generate_cave_map(config: &MapConfig) -> Vec<PixelState> {
 // Create rooms
 fn smooth_map(config: &MapConfig, pixels: &mut Vec<PixelState>, border_size: i32, wall_threshold : u8) {
     // Do not process borders
-    for x in border_size .. config.width - border_size {
-        for y in border_size .. config.height - border_size {
+    for x in border_size .. config.size - border_size {
+        for y in border_size .. config.size - border_size {
             let mut surrounding_walls: u8 = 0;
 
             for neighbour_x in x-1..=x+1 {
@@ -89,5 +89,5 @@ fn smooth_map(config: &MapConfig, pixels: &mut Vec<PixelState>, border_size: i32
 
 
 fn index(x: i32, y: i32, config: &MapConfig) -> usize {
-    (x + (y * config.width)) as usize
+    (x + (y * config.size)) as usize
 }

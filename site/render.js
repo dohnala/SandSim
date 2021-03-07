@@ -1,16 +1,17 @@
+import {showActiveChunks} from "./ui";
+
 const reglBuilder = require("regl");
 import { memory } from "./node_modules/engine/engine_bg";
 
-let startWebGL = ({ canvas, map }) => {
+let startWebGL = ({ canvas, map, config }) => {
     const regl = reglBuilder({
         canvas
     });
 
-    const width = map.width();
-    const height = map.height();
+    const size = map.size();
     let ptr_pixels = map.pixels();
-    let pixels = new Uint8Array(memory.buffer, ptr_pixels, width * height * 4);
-    const dataTexture = regl.texture({ width, height, data: pixels });
+    let pixels = new Uint8Array(memory.buffer, ptr_pixels, size * size * 4);
+    const dataTexture = regl.texture({ width: size, height: size, data: pixels });
 
     let drawMap = regl({
         frag: `
@@ -52,9 +53,9 @@ let startWebGL = ({ canvas, map }) => {
         uniforms: {
             data: () => {
                 ptr_pixels = map.pixels();
-                pixels = new Uint8Array(memory.buffer, ptr_pixels, width * height * 4);
+                pixels = new Uint8Array(memory.buffer, ptr_pixels, size * size * 4);
 
-                return dataTexture({width, height, data: pixels});
+                return dataTexture({width: size, height: size, data: pixels});
             },
         },
 
@@ -65,8 +66,66 @@ let startWebGL = ({ canvas, map }) => {
         count: 3,
     });
 
+    function drawChunk(props) {
+        return regl({
+            frag: `
+            precision mediump float;
+            uniform vec4 color;
+            void main () {
+              gl_FragColor = color;
+            }`,
+
+            vert: `
+            precision mediump float;
+            attribute vec2 position;
+            uniform float scale;
+            uniform vec2 offset;
+            void main () {
+              vec2 p  = position;
+              p *= scale;
+              p += offset;
+              gl_Position = vec4(p, 0, 1);
+            }`,
+
+            attributes: {
+                position: [[-1, -1], [1, -1], [1, 1], [-1, 1]],
+            },
+            uniforms: {
+                color: [0, 1, 0, 1],
+                scale: props.scale,
+                offset: props.offset,
+            },
+            count: 4,
+            lineWidth: 1,
+            primitive: 'line loop'
+        });
+    }
+    let chunkDrawCalls = [];
+
+    if (config.useChunks) {
+        let scale = config.chunkSize / map.size();
+
+        for (let i = 0; i < map.chunks_count(); i++) {
+            let chunk = map.chunk(i);
+
+            chunkDrawCalls.push(drawChunk({
+                scale: scale,
+                offset: [-1 + scale + 2*(chunk.x()/config.size), 1 - scale - 2*(chunk.y()/config.size)],
+            }));
+        }
+    }
+
+    let drawChunks = () => {
+        if (config.useChunks && showActiveChunks) {
+            for (let i = 0; i < chunkDrawCalls.length; i++) {
+                chunkDrawCalls[i]();
+            }
+        }
+    }
+
     return () => {
         regl.poll();
+        drawChunks();
         drawMap();
     };
 };

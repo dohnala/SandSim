@@ -1,5 +1,5 @@
 import {config, createMap, map, nextTick} from "./main.js";
-import {elements, mapGenerators, mapGeneratorByName} from "./vars";
+import {elements, mapGenerators, mapGeneratorByName, mapSizes, chunkSizes} from "./vars";
 import {pixelsProcessed, tickTime} from "./performance";
 
 var $ = require( "jquery" );
@@ -7,6 +7,8 @@ var $ = require( "jquery" );
 const canvas = document.getElementById("canvas");
 
 $('document').ready(function(){
+    addMapSizes();
+    addChunkSizes();
     addMapGenerators();
     addElements();
     updateCreateForm()
@@ -17,12 +19,17 @@ $('document').ready(function(){
 //  CREATE MAP
 // -----------------------------------------------------------------------------------------------
 let createButton = $('#create');
+let useChunksCheckbox = $('#configUseChunks');
+let chunkSizeSelect = $('#configChunkSize');
+let showActiveChunks = false;
+let showActiveChunksCheckbox = $('#showActiveChunks');
 
 createButton.click(() => {
-    config.width = clamp($('#configWidth').val(), 64, 512);
-    config.height = clamp($('#configHeight').val(), 64, 512);
+    config.size = Number($('#configSize').val());
     config.gravity = clamp($('#configGravity').val(), -1, 1);
-    config.max_velocity = clamp($('#configMaxVelocity').val(), 0, 100);
+    config.maxVelocity = clamp($('#configMaxVelocity').val(), 0, 100);
+    config.useChunks = useChunksCheckbox.is(":checked");
+    config.chunkSize = Number(chunkSizeSelect.val());
     config.generator = mapGeneratorByName($('#configGenerator').val());
 
     createMap()
@@ -30,11 +37,30 @@ createButton.click(() => {
 });
 
 const updateCreateForm = () => {
-    $('#configWidth').val(config.width);
-    $('#configHeight').val(config.height);
+    $('#configSize').val(config.size);
     $('#configGravity').val(config.gravity);
-    $('#configMaxVelocity').val(config.max_velocity);
+    $('#configMaxVelocity').val(config.maxVelocity);
     $('#configGenerator').val(mapGenerators[config.generator].value.name);
+
+    useChunksCheckbox.prop('checked', config.useChunks)
+    chunkSizeSelect.val(config.chunkSize);
+    chunkSizeSelect.prop('disabled', !config.useChunks)
+}
+
+const addMapSizes = () => {
+    mapSizes.forEach(function (value) {
+        let option = `<option>${value}</option>`;
+
+        $('#configSize').append(option);
+    });
+}
+
+const addChunkSizes = () => {
+    chunkSizes.forEach(function (value) {
+        let option = `<option>${value}</option>`;
+
+        $('#configChunkSize').append(option);
+    });
 }
 
 const addMapGenerators = () => {
@@ -46,6 +72,15 @@ const addMapGenerators = () => {
         }
     }
 }
+
+useChunksCheckbox.change(function() {
+    chunkSizeSelect.prop('disabled', !this.checked)
+    showActiveChunksCheckbox.prop('disabled', !this.checked)
+});
+
+showActiveChunksCheckbox.change(function() {
+    showActiveChunks = this.checked;
+});
 
 // -----------------------------------------------------------------------------------------------
 //  ACTIONS
@@ -295,8 +330,8 @@ const getPixelPosition = event => {
     const canvasLeft = (event.clientX - boundingRect.left) * scaleX;
     const canvasTop = (event.clientY - boundingRect.top) * scaleY;
 
-    const x = Math.max(Math.min(Math.floor(canvasLeft), config.width - 1), 0);
-    const y = Math.max(Math.min(Math.floor(canvasTop), config.height - 1), 0);
+    const x = Math.max(Math.min(Math.floor(canvasLeft), config.size - 1), 0);
+    const y = Math.max(Math.min(Math.floor(canvasTop), config.size - 1), 0);
 
     return [x, y];
 }
@@ -332,3 +367,5 @@ const magnitude = a => {
 const clamp = function(value, min, max) {
     return Math.min(Math.max(value, min), max);
 };
+
+export {showActiveChunks}

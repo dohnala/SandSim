@@ -5,6 +5,9 @@ const elements = [
     {key: Element.Wall, value: {name: "Wall", color: "rgba(0,0,0,1)"}},
     {key: Element.Sand, value: {name: "Sand", color: "rgba(194, 178, 127, 1)"}}];
 
+const mapSizes = [64, 128, 256, 512];
+const chunkSizes = [16, 32, 64];
+
 const mapGenerators = [
     {key: MapGenerator.EMPTY, value: {name: "Empty"}},
     {key: MapGenerator.CAVE, value: {name: "Cave"}},];
@@ -21,4 +24,4 @@ const mapGeneratorByName = name => {
     return null;
 }
 
-export {elements, mapGenerators, mapGeneratorByName}
+export {elements, mapSizes, chunkSizes, mapGenerators, mapGeneratorByName}
