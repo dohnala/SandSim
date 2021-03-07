@@ -1,4 +1,4 @@
-import {config, createMap, map, nextTick} from "./main.js";
+import {config, createMap, map, nextTick, generateSeed} from "./main.js";
 import {elements, mapGenerators, mapGeneratorByName, mapSizes, chunkSizes} from "./vars";
 import {pixelsProcessed, tickTime} from "./performance";
 
@@ -19,6 +19,7 @@ $('document').ready(function(){
 //  CREATE MAP
 // -----------------------------------------------------------------------------------------------
 let createButton = $('#create');
+let generateSeedButton = $('#generateSeed');
 let useChunksCheckbox = $('#configUseChunks');
 let chunkSizeSelect = $('#configChunkSize');
 let showActiveChunks = false;
@@ -31,8 +32,14 @@ createButton.click(() => {
     config.useChunks = useChunksCheckbox.is(":checked");
     config.chunkSize = Number(chunkSizeSelect.val());
     config.generator = mapGeneratorByName($('#configGenerator').val());
+    config.seed = Number($('#seed').val());
 
     createMap()
+    updateCreateForm();
+});
+
+generateSeedButton.click(() => {
+    config.seed = generateSeed();
     updateCreateForm();
 });
 
@@ -41,10 +48,11 @@ const updateCreateForm = () => {
     $('#configGravity').val(config.gravity);
     $('#configMaxVelocity').val(config.maxVelocity);
     $('#configGenerator').val(mapGenerators[config.generator].value.name);
+    $('#seed').val(config.seed);
 
-    useChunksCheckbox.prop('checked', config.useChunks)
+    useChunksCheckbox.prop('checked', config.useChunks);
     chunkSizeSelect.val(config.chunkSize);
-    chunkSizeSelect.prop('disabled', !config.useChunks)
+    chunkSizeSelect.prop('disabled', !config.useChunks);
 }
 
 const addMapSizes = () => {
