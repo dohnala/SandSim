@@ -44,8 +44,10 @@ pub struct PixelState {
     velocity_y: f32,
     // Flag to determine if the pixel is falling
     falling: bool,
+    // How many ticks the pixel didnt move
+    not_moved_count: u8,
     // Used to determine if the pixel was updated during a tick
-    clock_flag: bool,
+    clock: u8,
 }
 
 #[wasm_bindgen]
@@ -56,7 +58,8 @@ impl PixelState {
             element,
             velocity_y: 0f32,
             falling: true,
-            clock_flag: false,
+            not_moved_count: 0,
+            clock: 0,
         }
     }
 
@@ -72,8 +75,8 @@ impl PixelState {
         self.falling
     }
 
-    pub fn clock_flag(&self) -> bool {
-        self.clock_flag
+    pub fn not_moved_count(&self) -> u8 {
+        self.not_moved_count
     }
 }
 
@@ -95,14 +98,16 @@ pub static EMPTY_PIXEL_STATE: PixelState = PixelState {
     element: Element::Empty,
     velocity_y: 0f32,
     falling: false,
-    clock_flag: false,
+    not_moved_count: 0,
+    clock: 0,
 };
 
 pub static WALL_PIXEL_STATE: PixelState = PixelState {
     element: Element::Wall,
     velocity_y: 0f32,
     falling: false,
-    clock_flag: false,
+    not_moved_count: 0,
+    clock: 0,
 };
 
 // Represents a square chunk in the map which can be processed independently
@@ -118,7 +123,7 @@ pub struct Chunk {
 #[wasm_bindgen]
 impl Chunk {
     pub fn new(x: i32, y: i32) -> Chunk {
-        Chunk { x, y, active: true, active_next_tick: false }
+        Chunk { x, y, active: true, active_next_tick: true }
     }
 
     pub fn x(&self) -> i32 {
@@ -172,10 +177,13 @@ pub struct Map {
     pixels: Vec<Pixel>,
     pixel_states: Vec<PixelState>,
     chunks: Vec<Chunk>,
-    generation: u8,
-    // used to determine which pixels were updated during a tick
-    clock_flag: bool,
+    // The dimension of chunk vector
+    chunk_dim: i32,
+    // Used to determine which pixels were updated during a tick
+    clock: u8,
     random: Random,
+    // How much ticks pixel does not have to move and still be updated
+    not_moved_threshold: u8,
 }
 
 #[wasm_bindgen]
@@ -214,16 +222,23 @@ impl Map {
             vec![]
         };
 
+        let chunk_dim = if config.use_chunks {
+            config.size / config.chunk_size
+        } else {0};
+
         let random = Random::new(config.seed);
+
+        let not_moved_threshold = (1f32 / config.gravity).clamp(1f32, 10f32) as u8;
 
         Map {
             config,
             pixels,
             pixel_states,
             chunks,
-            generation: 0,
-            clock_flag: false,
+            chunk_dim,
+            clock: 0,
             random,
+            not_moved_threshold,
         }
     }
 
@@ -240,12 +255,11 @@ impl Map {
 
     // Clears the map so its empty
     pub fn clear(&mut self) {
-        self.generation = 0;
-        self.clock_flag = false;
+        self.clock = 0;
 
         for x in 0..self.config.size {
             for y in 0..self.config.size {
-                let index = self.index(x, y);
+                let index = self.pixel_index(x, y);
                 self.pixels[index] = EMPTY_PIXEL;
                 self.pixel_states[index] = EMPTY_PIXEL_STATE;
             }
@@ -254,29 +268,14 @@ impl Map {
 
     // Simulates a tick and return number of processed pixels
     pub fn tick(&mut self) -> u32 {
-        self.clock_flag = !self.clock_flag;
-
-        let mut pixels = 0;
-
-        for x in 0..self.config.size {
-            // process pixels from bottom
-            for y in (0..self.config.size).rev() {
-                // process rows from different side each tick
-                let scan_x = if self.generation % 2 == 0 {
-                    self.config.size - (1 + x)
-                } else {
-                    x
-                };
-
-                pixels += Map::update_pixel(
-                    &mut self.pixel_state(scan_x, y),
-                    &mut MapApi::new(scan_x, y, self)) as u32;
-            }
-        }
-
-        self.generation = self.generation.wrapping_add(1);
-
         self.reset_chunks();
+        self.clock = self.clock.wrapping_add(1);
+
+        let pixels:u32 = if self.config.use_chunks {
+            self.process_chunks()
+        } else {
+            self.process_pixels(0, 0, self.config.size, self.config.size)
+        };
 
         return pixels;
     }
@@ -285,28 +284,24 @@ impl Map {
         self.config.size
     }
 
-    pub fn generation(&self) -> u8 {
-        self.generation
-    }
-
     pub fn pixels(&self) -> *const Pixel {
         self.pixels.as_ptr()
     }
 
     pub fn pixel(&self, x: i32, y: i32) -> Pixel {
-        if x < 0 || x > self.config.size - 1 || y < 0 || y > self.config.size - 1 {
+        if self.out_of_bounds(x, y) {
             return WALL_PIXEL;
         }
 
-        return self.pixels[self.index(x, y)];
+        return self.pixels[self.pixel_index(x, y)];
     }
 
     pub fn pixel_state(&self, x: i32, y: i32) -> PixelState {
-        if x < 0 || x > self.config.size - 1 || y < 0 || y > self.config.size - 1 {
+        if self.out_of_bounds(x, y) {
             return WALL_PIXEL_STATE;
         }
 
-        return self.pixel_states[self.index(x, y)];
+        return self.pixel_states[self.pixel_index(x, y)];
     }
 
     pub fn chunk(&self, i: usize) -> Chunk {
@@ -319,13 +314,20 @@ impl Map {
 }
 
 impl Map {
-    fn index(&self, x: i32, y: i32) -> usize {
+    // Return index in pixels vector for given x,y
+    fn pixel_index(&self, x: i32, y: i32) -> usize {
         (x + (y * self.config.size)) as usize
     }
 
+    // Return index in chunk vector for given x,y
+    fn chunk_index(&self, x: i32, y: i32) -> usize {
+        (x + (y * self.chunk_dim)) as usize
+    }
+
+    // Update given pixel
     fn update_pixel(pixel: &mut PixelState, api: &mut MapApi) -> bool {
         if Map::can_update(pixel, api) {
-            pixel.clock_flag = api.map.clock_flag;
+            pixel.clock = api.map.clock;
             Element::update(pixel, api);
             return true;
         }
@@ -334,33 +336,37 @@ impl Map {
 
     // Return true if a pixel can be updated
     fn can_update(pixel: &mut PixelState, api: &MapApi) -> bool {
+        // TODO: add checking for static, not concrete elements
         match pixel.element {
-            // TODO: replace with static flag
             Element::Empty => false,
             Element::Wall => false,
-            _ => pixel.clock_flag() != api.map.clock_flag
+            _ => pixel.clock != api.map.clock
         }
     }
 
     // Inserts a new pixel of given element at x,y
     fn insert_pixel(&mut self, x: i32, y: i32, element: Element) {
-        if self.pixel_state(x, y).element() == Element::Empty || element == Element::Empty {
-            let index = self.index(x, y);
+        if self.out_of_bounds(x, y) {
+            return;
+        }
 
-            let falling = if element == Element::Sand {true} else {false};
+        if self.pixel_state(x, y).element() == Element::Empty || element == Element::Empty {
+            let index = self.pixel_index(x, y);
 
             self.pixels[index] = Pixel::new(element);
             self.pixel_states[index] = PixelState {
                 element,
                 velocity_y: 0f32,
-                falling,
-                clock_flag: self.clock_flag,
+                falling: false,
+                not_moved_count: 0,
+                clock: self.clock,
             };
 
-            self.set_chunk_active_next_tick(x, y);
+            self.activate_surrounding_pixels(x, y);
         }
     }
 
+    // Generates chunks of given size for map of given size and return them
     fn generate_chunks(map_size: i32, chunk_size: i32) -> Vec<Chunk> {
         return (0..map_size).step_by(chunk_size as usize)
             .into_iter()
@@ -374,6 +380,7 @@ impl Map {
             .collect();
     }
 
+    // Resets chunks for next tick
     fn reset_chunks(&mut self) {
         for mut chunk in self.chunks.iter_mut() {
             chunk.active = chunk.active_next_tick;
@@ -381,20 +388,107 @@ impl Map {
         }
     }
 
-    fn set_chunk_active_next_tick(&mut self, map_x: i32, map_y: i32) {
+    // Marks a chunk for given pixel position active for next tick
+    fn set_chunk_active_next_tick(&mut self, pixel_x: i32, pixel_y: i32) {
         if self.config.use_chunks {
-            let chunk_x = map_x / self.config.chunk_size;
-            let chunk_y = map_y / self.config.chunk_size;
-            let chunk_index = (chunk_x + (chunk_y *
-                (self.config.size / self.config.chunk_size))) as usize;
+            let chunk_x = pixel_x / self.config.chunk_size;
+            let chunk_y = pixel_y / self.config.chunk_size;
+            let index = self.chunk_index(chunk_x, chunk_y);
 
-            match self.chunks.get_mut(chunk_index) {
+            match self.chunks.get_mut(index) {
                 Some(chunk) => {
                     chunk.active_next_tick = true
                 }
                 None => {}
             }
         }
+    }
+
+    // Process all active chunks and pixels they contain
+    fn process_chunks(&mut self) -> u32 {
+        let mut pixels = 0;
+
+        // Process chunks from bottom
+        for chunk_y in (0..self.chunk_dim).rev() {
+            for chunk_x in 0..self.chunk_dim {
+                // process chunks from different side each tick
+                let chunk_scan_x = if self.clock % 2 == 0 {
+                    self.chunk_dim - (1 + chunk_x)
+                } else {
+                    chunk_x
+                };
+
+                let chunk = self.chunk(self.chunk_index(chunk_scan_x, chunk_y));
+
+                if chunk.active {
+                    pixels += self.process_pixels(
+                        chunk.x,
+                        chunk.y,
+                        chunk.x + self.config.chunk_size,
+                        chunk.y + self.config.chunk_size);
+                }
+            }
+        }
+
+        return pixels;
+    }
+
+    // Process pixels within given rectangle area
+    fn process_pixels(&mut self, x_from: i32, y_from: i32, x_to: i32, y_to: i32) -> u32 {
+        let mut pixels = 0;
+
+        // Process pixels from bottom
+        for y in (y_from..y_to).rev() {
+            for x in x_from..x_to {
+                // process pixels from different side each tick
+                let scan_x = if self.clock % 2 == 0 {
+                    x_from + x_to - (1 + x)
+                } else {
+                    x
+                };
+
+                pixels += Map::update_pixel(
+                    &mut self.pixel_state(scan_x, y),
+                    &mut MapApi::new(scan_x, y, self)) as u32;
+            }
+        }
+
+        return pixels;
+    }
+
+    // Activates pixel on given position by activating corresponding chunk
+    fn activate_pixel(&mut self, x: i32, y: i32) {
+        if self.out_of_bounds(x, y) {
+            return;
+        }
+
+        self.set_chunk_active_next_tick(x, y)
+    }
+
+    // Activates pixel on given position and all its surrounding pixels
+    // by activating corresponding chunks
+    fn activate_surrounding_pixels(&mut self, x: i32, y: i32) {
+        for dir_x in -1..=1 {
+            for dir_y in -1..=1 {
+                self.activate_pixel(x+dir_x, y+dir_y);
+
+                // Mark solid pixels above with falling flag
+                if dir_y == -1 {
+                    let index = self.pixel_index(x+dir_x, y+dir_y);
+
+                    // TODO: add checking for solid, not concrete elements
+                    match self.pixel_states[index].element {
+                        Element::Sand => self.pixel_states[index].falling = true,
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    // Return true if given position is out of bounds of the map
+    fn out_of_bounds(&self, x: i32, y: i32) -> bool {
+        return x < 0 || x > self.config.size - 1 || y < 0 || y > self.config.size - 1
     }
 }
 
@@ -415,6 +509,7 @@ impl<'a> MapApi<'a> {
         }
     }
 
+    // Return gravity
     pub fn gravity(&self) -> f32 {
         return self.map.config.gravity;
     }
@@ -424,7 +519,7 @@ impl<'a> MapApi<'a> {
         self.set_velocity(pixel, pixel.velocity_y + velocity);
     }
 
-    // Adds velocity to given pixel
+    // Set velocity to given pixel
     pub fn set_velocity(&mut self, pixel: &mut PixelState, velocity: f32) {
         pixel.velocity_y = velocity.clamp(
             -self.map.config.max_velocity, self.map.config.max_velocity);
@@ -448,11 +543,11 @@ impl<'a> MapApi<'a> {
         let nx = self.x + dx;
         let ny = self.y + dy;
 
-        if nx < 0 || nx > self.map.config.size - 1 || ny < 0 || ny > self.map.config.size - 1 {
+        if self.map.out_of_bounds(nx, ny) {
             return;
         }
 
-        let index = self.map.index(nx, ny);
+        let index = self.map.pixel_index(nx, ny);
 
         self.map.pixels[index] = Pixel::new(pixel.element);
         self.map.pixel_states[index] = *pixel;
@@ -460,19 +555,31 @@ impl<'a> MapApi<'a> {
 
     // Activates pixel on given relative position, so it will be processed next tick
     pub fn activate_pixel(&mut self, dx: i32, dy: i32) {
-        let nx = self.x + dx;
-        let ny = self.y + dy;
+        self.map.activate_pixel(self.x + dx, self.y + dy)
+    }
 
-        if nx < 0 || nx > self.map.config.size - 1 || ny < 0 || ny > self.map.config.size - 1 {
-            return;
+    // Activates pixel on given relative position and all its surrounding pixels
+    // so they will be processed next tick
+    pub fn activate_surrounding_pixels(&mut self, dx: i32, dy: i32) {
+        self.map.activate_surrounding_pixels(self.x + dx, self.y + dy);
+    }
+
+    // Activates the pixel when moved with respect to given not moved threshold
+    // so even when a pixel does not move with less ticks then this threshold, we will
+    // still update it
+    pub fn activate_when_moved(&mut self, pixel: &mut PixelState) {
+        if pixel.not_moved_count() >= self.map.not_moved_threshold {
+            pixel.not_moved_count = self.map.not_moved_threshold;
+            self.set_pixel(0, 0, pixel);
         }
 
-        self.map.set_chunk_active_next_tick(nx, ny)
+        if pixel.falling || pixel.not_moved_count < self.map.not_moved_threshold {
+            self.activate_pixel(0, 0);
+        }
     }
 
     // Compute a path in the map of the pixel according to its velocity and pass that context
-    // to given function which should do the actual movement across the path and should return
-    // whether the movement should continue or stop
+    // to given function which should decide what to do by providing the result
     pub fn move_by_velocity(&mut self,
                             pixel: &mut PixelState,
                             move_f: fn(&mut PixelState, &mut MapApi, &MoveContext) -> MoveResult) {
@@ -484,31 +591,50 @@ impl<'a> MapApi<'a> {
         let mut last_valid_y = 0;
 
         if velocity_y >= 1 {
-            for y in 1..=velocity_y {
-                let contact = self.pixel(0, y * sign_y);
+            for move_y in 1..=velocity_y {
+                let contact = self.pixel(0, move_y * sign_y);
 
                 let result = move_f(pixel, self, &MoveContext::new(
                     0,
-                    y * sign_y,
+                    move_y * sign_y,
                     &contact,
-                    y == 1,
-                    y == velocity_y,
+                    move_y == 1,
+                    move_y == velocity_y,
                     last_valid_x,
                     last_valid_y));
 
                 match result {
-                    MoveResult::STOP => break,
+                    // Continue moving along the path and update last valid position
                     MoveResult::CONTINUE => {
-                        // Update last valid position with a new place
-                        last_valid_y = y * sign_y;
+                        last_valid_y = move_y * sign_y;
                         continue
-                    }
+                    },
+                    // Finalize the movement by swapping the pixels and activating them
+                    MoveResult::MOVE {x,y} => {
+                        if x != 0 || y != 0 {
+                            // Swap the pixels and activate them
+                            let target_pixel = self.pixel(x, y);
+
+                            // Reset not moved count flag
+                            pixel.not_moved_count = 0;
+
+                            self.set_pixel(0, 0, &target_pixel);
+                            self.activate_surrounding_pixels(0, 0);
+                            self.set_pixel(x, y, pixel);
+                            self.activate_surrounding_pixels(x, y);
+
+                            return;
+                        }
+                        break;
+                    },
                 }
             }
-        } else {
-            // Update itself so the changes of velocity, ... are stored
-            self.set_pixel(0, 0, pixel);
         }
+
+        // If we did not move, increment not moved count,and update itself
+        // so the changes are stored
+        pixel.not_moved_count += 1;
+        self.set_pixel(0, 0, pixel);
     }
 
     // Move to a neighbor position using given unit direction and pass a new context
@@ -579,5 +705,5 @@ impl<'a> MoveContext<'a> {
 
 pub enum MoveResult {
     CONTINUE,
-    STOP
+    MOVE {x: i32, y: i32}
 }

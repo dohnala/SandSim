@@ -120,7 +120,7 @@ let startWebGL = ({ canvas, map, config }) => {
             for (let i = 0; i < chunkDrawCalls.length; i++) {
                 let chunk = map.chunk(i);
 
-                if (chunk.active()) {
+                if (chunk.active_next_tick()) {
                     chunkDrawCalls[i]();
                 }
             }

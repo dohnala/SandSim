@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use crate::map::{MapApi, EMPTY_PIXEL_STATE, PixelState, MoveContext, MoveResult};
+use crate::map::{MapApi, PixelState, MoveContext, MoveResult};
 
 // Represent an element of a pixel
 #[wasm_bindgen]
@@ -26,34 +26,26 @@ impl Element {
 fn update_movable_solid(pixel: &mut PixelState, api: &mut MapApi) {
     api.add_velocity(pixel, api.gravity());
     api.move_by_velocity(pixel, move_solid);
-
-    if pixel.falling() {
-        api.activate_pixel(0, 0);
-    }
+    api.activate_when_moved(pixel);
 }
 
 // Function to move a solid pixel
 fn move_solid(pixel: &mut PixelState, api: &mut MapApi, context: &MoveContext) -> MoveResult {
     match context.contact.element() {
-        // If there is an empty pixel in the movement path, we just go through it and
-        // in the last move we swap the pixels
+        // If there is an empty pixel in the movement path, we just go through it
         Element::Empty => {
             if context.last_move {
                 api.set_falling(pixel, true);
-                api.set_pixel(0, 0, &EMPTY_PIXEL_STATE);
-                api.activate_pixel(0, 0);
-                api.set_pixel(context.x, context.y, pixel);
-                api.activate_pixel(context.x, context.y);
-                MoveResult::STOP
+                MoveResult::MOVE {x: context.x, y: context.y}
             } else {
                 MoveResult::CONTINUE
             }
         },
         // If there is anything solid in the movement path
         _ => {
-            // First update the velocity to the average
-            api.set_velocity(pixel,
-                             (pixel.velocity_y() + context.contact.velocity_y()) / 2f32);
+            // If the pixel run into the solid pixel change its velocity to the average of
+            // its velocity and velocity of the pixel under it
+            api.set_velocity(pixel,(pixel.velocity_y() + context.contact.velocity_y()) / 2f32);
 
             // If this is first move in the path, take a random horizontal direction
             // and try to move there
@@ -66,21 +58,9 @@ fn move_solid(pixel: &mut PixelState, api: &mut MapApi, context: &MoveContext) -
                 return api.move_by_direction(
                     pixel, rand_x, 0, context, move_solid)
             } else {
-                // Otherwise, move to the last valid position and stop the movement
+                // Otherwise, move to the last valid position
                 api.set_falling(pixel, false);
-
-                if context.last_valid_x == 0 && context.last_valid_y == 0 {
-                    // The pixel did not move, so just update its values
-                    api.set_pixel(context.last_valid_x, context.last_valid_y, pixel);
-                } else {
-                    // The pixel moved, so swap the position and make pixels active
-                    api.set_pixel(0, 0, &EMPTY_PIXEL_STATE);
-                    api.activate_pixel(0, 0);
-                    api.set_pixel(context.last_valid_x, context.last_valid_y, pixel);
-                    api.activate_pixel(context.last_valid_x, context.last_valid_y);
-                }
-
-                MoveResult::STOP
+                MoveResult::MOVE {x: context.last_valid_x, y: context.last_valid_y}
             }
         }
     }

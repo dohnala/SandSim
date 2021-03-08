@@ -8,11 +8,11 @@ const generateSeed = () => {
 }
 
 let config = {
-    size: 128,
+    size: 256,
     gravity: 0.2,
-    maxVelocity: 5,
+    maxVelocity: 10,
     useChunks: true,
-    chunkSize: 16,
+    chunkSize: 32,
     generator: MapGenerator.EMPTY,
     seed: 1,
 }

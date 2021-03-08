@@ -30,7 +30,6 @@ fn test_activate_pixel() {
     map.tick();
 
     for i in 0..map.chunks_count() {
-        assert_eq!(map.chunk(i).active(), false);
         assert_eq!(map.chunk(i).active_next_tick(), false);
     }
 
@@ -41,10 +40,8 @@ fn test_activate_pixel() {
         if i == 5 {
             assert_eq!(map.chunk(i).x(), 2);
             assert_eq!(map.chunk(i).y(), 2);
-            assert_eq!(map.chunk(i).active(), false);
             assert_eq!(map.chunk(i).active_next_tick(), true);
         } else {
-            assert_eq!(map.chunk(i).active(), false);
             assert_eq!(map.chunk(i).active_next_tick(), false);
         }
     }

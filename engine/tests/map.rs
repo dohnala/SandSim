@@ -1,4 +1,4 @@
-use engine::map::{Map, Pixel, PixelState, EMPTY_PIXEL_STATE, MapConfig};
+use engine::map::{Map, Pixel, PixelState, EMPTY_PIXEL_STATE, MapConfig, MapApi};
 use engine::element::Element;
 
 #[test]
@@ -13,7 +13,6 @@ fn test_pixel_state_new() {
     let pixel_state = PixelState::new(Element::Sand);
 
     assert_eq!(pixel_state.element(), Element::Sand);
-    assert_eq!(pixel_state.clock_flag(), false);
 }
 
 #[test]
@@ -21,7 +20,6 @@ fn test_empty_pixel_state() {
     let pixel_state = EMPTY_PIXEL_STATE;
 
     assert_eq!(pixel_state.element(), Element::Empty);
-    assert_eq!(pixel_state.clock_flag(), false);
 }
 
 #[test]
@@ -31,14 +29,11 @@ fn test_map_new() {
     let map = Map::new_empty(config);
 
     assert_eq!(map.size(), 3);
-    assert_eq!(map.generation(), 0);
 
     for x in 0..map.size() {
         for y in 0..map.size() {
             assert_eq!(map.pixel(x, y).element(), Element::Empty);
-
             assert_eq!(map.pixel_state(x, y).element(), Element::Empty);
-            assert_eq!(map.pixel_state(x, y).clock_flag(), false);
         }
     }
 }
@@ -54,7 +49,6 @@ fn test_map_insert()
 
     assert_eq!(map.pixel(1, 1).element(), Element::Sand);
     assert_eq!(map.pixel_state(1, 1).element(), Element::Sand);
-    assert_eq!(map.pixel_state(1, 1).clock_flag(), false);
 }
 
 #[test]
@@ -69,7 +63,6 @@ fn test_map_clear()
 
     assert_eq!(map.pixel(0, 0).element(), Element::Empty);
     assert_eq!(map.pixel_state(0, 0).element(), Element::Empty);
-    assert_eq!(map.pixel_state(0, 0).clock_flag(), false);
 }
 
 #[test]
@@ -81,14 +74,10 @@ fn test_map_tick()
 
     map.tick();
 
-    assert_eq!(map.generation(), 1);
-
     for x in 0..map.size() {
         for y in 0..map.size() {
             assert_eq!(map.pixel(x, y).element(), Element::Empty);
-
             assert_eq!(map.pixel_state(x, y).element(), Element::Empty);
-            assert_eq!(map.pixel_state(x, y).clock_flag(), false);
         }
     }
 }
