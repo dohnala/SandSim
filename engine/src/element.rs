@@ -26,6 +26,10 @@ impl Element {
 fn update_movable_solid(pixel: &mut PixelState, api: &mut MapApi) {
     api.add_velocity(pixel, api.gravity());
     api.move_by_velocity(pixel, move_solid);
+
+    if pixel.falling() {
+        api.activate_pixel(0, 0);
+    }
 }
 
 // Function to move a solid pixel
@@ -35,8 +39,11 @@ fn move_solid(pixel: &mut PixelState, api: &mut MapApi, context: &MoveContext) -
         // in the last move we swap the pixels
         Element::Empty => {
             if context.last_move {
+                api.set_falling(pixel, true);
                 api.set_pixel(0, 0, &EMPTY_PIXEL_STATE);
+                api.activate_pixel(0, 0);
                 api.set_pixel(context.x, context.y, pixel);
+                api.activate_pixel(context.x, context.y);
                 MoveResult::STOP
             } else {
                 MoveResult::CONTINUE
@@ -60,8 +67,19 @@ fn move_solid(pixel: &mut PixelState, api: &mut MapApi, context: &MoveContext) -
                     pixel, rand_x, 0, context, move_solid)
             } else {
                 // Otherwise, move to the last valid position and stop the movement
-                api.set_pixel(0, 0, &EMPTY_PIXEL_STATE);
-                api.set_pixel(context.last_valid_x, context.last_valid_y, pixel);
+                api.set_falling(pixel, false);
+
+                if context.last_valid_x == 0 && context.last_valid_y == 0 {
+                    // The pixel did not move, so just update its values
+                    api.set_pixel(context.last_valid_x, context.last_valid_y, pixel);
+                } else {
+                    // The pixel moved, so swap the position and make pixels active
+                    api.set_pixel(0, 0, &EMPTY_PIXEL_STATE);
+                    api.activate_pixel(0, 0);
+                    api.set_pixel(context.last_valid_x, context.last_valid_y, pixel);
+                    api.activate_pixel(context.last_valid_x, context.last_valid_y);
+                }
+
                 MoveResult::STOP
             }
         }

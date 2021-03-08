@@ -42,7 +42,9 @@ impl Pixel {
 pub struct PixelState {
     element: Element,
     velocity_y: f32,
-    // used to determine if the pixel was updated during a tick
+    // Flag to determine if the pixel is falling
+    falling: bool,
+    // Used to determine if the pixel was updated during a tick
     clock_flag: bool,
 }
 
@@ -53,6 +55,7 @@ impl PixelState {
         PixelState {
             element,
             velocity_y: 0f32,
+            falling: true,
             clock_flag: false,
         }
     }
@@ -65,14 +68,12 @@ impl PixelState {
         self.velocity_y
     }
 
+    pub fn falling(&self) -> bool {
+        self.falling
+    }
+
     pub fn clock_flag(&self) -> bool {
         self.clock_flag
-    }
-}
-
-impl PixelState {
-    fn set_velocity_y(&mut self, velocity: f32) {
-        self.velocity_y = velocity;
     }
 }
 
@@ -93,12 +94,14 @@ static WALL_PIXEL: Pixel = Pixel {
 pub static EMPTY_PIXEL_STATE: PixelState = PixelState {
     element: Element::Empty,
     velocity_y: 0f32,
+    falling: false,
     clock_flag: false,
 };
 
 pub static WALL_PIXEL_STATE: PixelState = PixelState {
     element: Element::Wall,
     velocity_y: 0f32,
+    falling: false,
     clock_flag: false,
 };
 
@@ -108,12 +111,14 @@ pub static WALL_PIXEL_STATE: PixelState = PixelState {
 pub struct Chunk {
     x: i32,
     y: i32,
+    active: bool,
+    active_next_tick: bool,
 }
 
 #[wasm_bindgen]
 impl Chunk {
     pub fn new(x: i32, y: i32) -> Chunk {
-        Chunk { x, y }
+        Chunk { x, y, active: true, active_next_tick: false }
     }
 
     pub fn x(&self) -> i32 {
@@ -122,6 +127,14 @@ impl Chunk {
 
     pub fn y(&self) -> i32 {
         self.y
+    }
+
+    pub fn active(&self) -> bool {
+        self.active
+    }
+
+    pub fn active_next_tick(&self) -> bool {
+        self.active_next_tick
     }
 }
 
@@ -263,6 +276,8 @@ impl Map {
 
         self.generation = self.generation.wrapping_add(1);
 
+        self.reset_chunks();
+
         return pixels;
     }
 
@@ -332,12 +347,17 @@ impl Map {
         if self.pixel_state(x, y).element() == Element::Empty || element == Element::Empty {
             let index = self.index(x, y);
 
+            let falling = if element == Element::Sand {true} else {false};
+
             self.pixels[index] = Pixel::new(element);
             self.pixel_states[index] = PixelState {
                 element,
                 velocity_y: 0f32,
+                falling,
                 clock_flag: self.clock_flag,
             };
+
+            self.set_chunk_active_next_tick(x, y);
         }
     }
 
@@ -348,13 +368,33 @@ impl Map {
                 return (0..map_size).step_by(chunk_size as usize)
                     .into_iter()
                     .map(move |x| {
-                        Chunk {
-                            x,
-                            y
-                        }
+                        Chunk::new(x, y)
                     })
             })
             .collect();
+    }
+
+    fn reset_chunks(&mut self) {
+        for mut chunk in self.chunks.iter_mut() {
+            chunk.active = chunk.active_next_tick;
+            chunk.active_next_tick = false;
+        }
+    }
+
+    fn set_chunk_active_next_tick(&mut self, map_x: i32, map_y: i32) {
+        if self.config.use_chunks {
+            let chunk_x = map_x / self.config.chunk_size;
+            let chunk_y = map_y / self.config.chunk_size;
+            let chunk_index = (chunk_x + (chunk_y *
+                (self.config.size / self.config.chunk_size))) as usize;
+
+            match self.chunks.get_mut(chunk_index) {
+                Some(chunk) => {
+                    chunk.active_next_tick = true
+                }
+                None => {}
+            }
+        }
     }
 }
 
@@ -386,8 +426,13 @@ impl<'a> MapApi<'a> {
 
     // Adds velocity to given pixel
     pub fn set_velocity(&mut self, pixel: &mut PixelState, velocity: f32) {
-        pixel.set_velocity_y(velocity.clamp(
-            -self.map.config.max_velocity, self.map.config.max_velocity));
+        pixel.velocity_y = velocity.clamp(
+            -self.map.config.max_velocity, self.map.config.max_velocity);
+    }
+
+    // Set falling flag to given pixel
+    pub fn set_falling(&mut self, pixel: &mut PixelState, falling: bool) {
+        pixel.falling = falling;
     }
 
     // Returns a pixel in direction (dx, dy) relative to current pixel
@@ -411,6 +456,18 @@ impl<'a> MapApi<'a> {
 
         self.map.pixels[index] = Pixel::new(pixel.element);
         self.map.pixel_states[index] = *pixel;
+    }
+
+    // Activates pixel on given relative position, so it will be processed next tick
+    pub fn activate_pixel(&mut self, dx: i32, dy: i32) {
+        let nx = self.x + dx;
+        let ny = self.y + dy;
+
+        if nx < 0 || nx > self.map.config.size - 1 || ny < 0 || ny > self.map.config.size - 1 {
+            return;
+        }
+
+        self.map.set_chunk_active_next_tick(nx, ny)
     }
 
     // Compute a path in the map of the pixel according to its velocity and pass that context

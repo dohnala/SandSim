@@ -242,6 +242,7 @@ const inspectPixel = event => {
             $('#inspectElement').text(elements[pixel.element()].value.name);
             $('#inspectPosition').text("(" + inspectPixelPosition[0] + ", " + inspectPixelPosition[1] + ")");
             $('#inspectVelocity').text("(0, " + pixel.velocity_y() + ")");
+            $('#inspectFalling').text(pixel.falling());
         }
     } else {
         inspectDetails.hide();

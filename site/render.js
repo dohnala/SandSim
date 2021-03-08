@@ -109,16 +109,20 @@ let startWebGL = ({ canvas, map, config }) => {
             let chunk = map.chunk(i);
 
             chunkDrawCalls.push(drawChunk({
-                scale: scale,
-                offset: [-1 + scale + 2*(chunk.x()/config.size), 1 - scale - 2*(chunk.y()/config.size)],
-            }));
+                    scale: scale,
+                    offset: [-1 + scale + 2*(chunk.x()/config.size), 1 - scale - 2*(chunk.y()/config.size)],
+                }));
         }
     }
 
     let drawChunks = () => {
         if (config.useChunks && showActiveChunks) {
             for (let i = 0; i < chunkDrawCalls.length; i++) {
-                chunkDrawCalls[i]();
+                let chunk = map.chunk(i);
+
+                if (chunk.active()) {
+                    chunkDrawCalls[i]();
+                }
             }
         }
     }
