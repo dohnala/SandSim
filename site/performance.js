@@ -1,6 +1,7 @@
 import {config} from "./main";
 
 const MEAN_FRAMES_SIZE = 100;
+const PIXEL_PROCESSED_FRAMES_SIZE = 10;
 
 let fpsLabel = document.getElementById("fps");
 let meanRenderTimeLabel = document.getElementById("meanRenderTime");
@@ -97,7 +98,7 @@ const pixelsProcessed = {
         (${percentage(this.last, config.size*config.size)}%)` : "";
 
         this.frames.push(pixels);
-        if (this.frames.length > MEAN_FRAMES_SIZE) {
+        if (this.frames.length > PIXEL_PROCESSED_FRAMES_SIZE) {
             this.frames.shift();
         }
 
