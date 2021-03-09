@@ -474,15 +474,24 @@ impl Map {
 
                 // Mark solid pixels above with falling flag
                 if dir_y == -1 {
-                    let index = self.pixel_index(x+dir_x, y+dir_y);
-
-                    // TODO: add checking for solid, not concrete elements
-                    match self.pixel_states[index].element {
-                        Element::Sand => self.pixel_states[index].falling = true,
-                        _ => {}
-                    }
+                    self.set_pixel_falling(x+dir_x, y+dir_y, true);
                 }
             }
+        }
+    }
+
+    // Set solid pixel at given position with falling flag
+    fn set_pixel_falling(&mut self, x: i32, y: i32, value: bool) {
+        if self.out_of_bounds(x, y) {
+            return;
+        }
+
+        let index = self.pixel_index(x, y);
+
+        // TODO: add checking for solid, not concrete elements
+        match self.pixel_states[index].element {
+            Element::Sand => self.pixel_states[index].falling = value,
+            _ => {}
         }
     }
 
