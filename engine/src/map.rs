@@ -4,6 +4,8 @@ use wasm_bindgen::prelude::*;
 use crate::element::Element;
 use crate::rand::Random;
 use crate::map_generator::MapGenerator;
+use crate::math;
+use crate::math::Vec2;
 
 // Represents a read-only pixel on the map
 #[wasm_bindgen]
@@ -592,51 +594,52 @@ impl<'a> MapApi<'a> {
     pub fn move_by_velocity(&mut self,
                             pixel: &mut PixelState,
                             move_f: fn(&mut PixelState, &mut MapApi, &MoveContext) -> MoveResult) {
-        let sign_y = if pixel.velocity_y() > 0f32 {1} else {-1};
-        let velocity_y = (pixel.velocity_y().abs()) as i32;
+
+        let velocity_y = pixel.velocity_y() as i32;
+
+        let target_pos = Vec2::new(0, velocity_y);
 
         // Keep track of last valid position during the movement
-        let last_valid_x = 0;
-        let mut last_valid_y = 0;
+        let mut last_valid_pos = Vec2::new(0, 0);
 
-        if velocity_y >= 1 {
-            for move_y in 1..=velocity_y {
-                let contact = self.pixel(0, move_y * sign_y);
+        for (i, pos) in math::path(
+            Vec2::new(0, 0), target_pos).enumerate() {
 
-                let result = move_f(pixel, self, &MoveContext::new(
-                    0,
-                    move_y * sign_y,
-                    &contact,
-                    move_y == 1,
-                    move_y == velocity_y,
-                    last_valid_x,
-                    last_valid_y));
+            let contact = self.pixel(pos.x, pos.y);
 
-                match result {
-                    // Continue moving along the path and update last valid position
-                    MoveResult::CONTINUE => {
-                        last_valid_y = move_y * sign_y;
-                        continue
-                    },
-                    // Finalize the movement by swapping the pixels and activating them
-                    MoveResult::MOVE {x,y} => {
-                        if x != 0 || y != 0 {
-                            // Swap the pixels and activate them
-                            let target_pixel = self.pixel(x, y);
+            let result = move_f(pixel, self, &MoveContext::new(
+                pos.x,
+                pos.y,
+                &contact,
+                i == 0,
+                pos == target_pos,
+                last_valid_pos.x,
+                last_valid_pos.y));
 
-                            // Reset not moved count flag
-                            pixel.not_moved_count = 0;
+            match result {
+                // Continue moving along the path and update last valid position
+                MoveResult::CONTINUE => {
+                    last_valid_pos = pos;
+                    continue
+                },
+                // Finalize the movement by swapping the pixels and activating them
+                MoveResult::MOVE {x,y} => {
+                    if x != 0 || y != 0 {
+                        // Swap the pixels and activate them
+                        let target_pixel = self.pixel(x, y);
 
-                            self.set_pixel(0, 0, &target_pixel);
-                            self.activate_surrounding_pixels(0, 0);
-                            self.set_pixel(x, y, pixel);
-                            self.activate_surrounding_pixels(x, y);
+                        // Reset not moved count flag
+                        pixel.not_moved_count = 0;
 
-                            return;
-                        }
-                        break;
-                    },
-                }
+                        self.set_pixel(0, 0, &target_pixel);
+                        self.activate_surrounding_pixels(0, 0);
+                        self.set_pixel(x, y, pixel);
+                        self.activate_surrounding_pixels(x, y);
+
+                        return;
+                    }
+                    break;
+                },
             }
         }
 
