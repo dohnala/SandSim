@@ -1,5 +1,6 @@
-use engine::map::{Map, Pixel, PixelState, EMPTY_PIXEL_STATE, MapConfig, MapApi};
-use engine::element::Element;
+use engine::map::{Map, Pixel, EMPTY_PIXEL_STATE, MapConfig};
+use engine::pixel::Element;
+use engine::rand::Random;
 
 #[test]
 fn test_pixel_new() {
@@ -10,7 +11,8 @@ fn test_pixel_new() {
 
 #[test]
 fn test_pixel_state_new() {
-    let pixel_state = PixelState::new(Element::Sand);
+    let pixel_state = Element::new_pixel(
+        Element::Sand,  &mut Random::new(1));
 
     assert_eq!(pixel_state.element(), Element::Sand);
 }

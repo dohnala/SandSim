@@ -26,4 +26,24 @@ impl Random {
             }
         }
     }
+
+    // Returns random index from given probability distribution
+    pub fn rand(&mut self, distribution: &[f32]) -> usize {
+        let mut random = self.next();
+
+        for (i, prob) in distribution.iter().enumerate() {
+            if random <= *prob {
+                return i;
+            } else {
+                random -= prob;
+            }
+        }
+
+        distribution.len() - 1
+    }
+
+    // Generates random f32 in given range
+    pub fn range(&mut self, min: f32, max: f32) -> f32 {
+        self.next() * (max - min) + min
+    }
 }

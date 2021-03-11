@@ -1,5 +1,6 @@
 use engine::map::{Map, MapApi, MapConfig};
-use engine::element::Element;
+use engine::pixel::Element;
+use engine::math::Vec2;
 
 #[test]
 fn test_map_api_get_pixel() {
@@ -10,15 +11,15 @@ fn test_map_api_get_pixel() {
     map.insert(1, 1, Element::Sand, 0);
     map.insert(1, 2, Element::Sand, 0);
 
-    let mut api = MapApi::new(1, 1, &mut map);
+    let mut api = MapApi::new(Vec2::new(1, 1), &mut map);
 
-    assert_eq!(api.pixel(0, 0).element(), Element::Sand);
-    assert_eq!(api.pixel(0, -1).element(), Element::Empty);
-    assert_eq!(api.pixel(0, 1).element(), Element::Sand);
-    assert_eq!(api.pixel(0, 2).element(), Element::Wall);
-    assert_eq!(api.pixel(0, -2).element(), Element::Wall);
-    assert_eq!(api.pixel(2, 0).element(), Element::Wall);
-    assert_eq!(api.pixel(-2, 0).element(), Element::Wall);
+    assert_eq!(api.pixel(Vec2::new(0, 0)).element(), Element::Sand);
+    assert_eq!(api.pixel(Vec2::new(0, -1)).element(), Element::Empty);
+    assert_eq!(api.pixel(Vec2::new(0, 1)).element(), Element::Sand);
+    assert_eq!(api.pixel(Vec2::new(0, 2)).element(), Element::Wall);
+    assert_eq!(api.pixel(Vec2::new(0, -2)).element(), Element::Wall);
+    assert_eq!(api.pixel(Vec2::new(2, 0)).element(), Element::Wall);
+    assert_eq!(api.pixel(Vec2::new(-2, 0)).element(), Element::Wall);
 }
 
 #[test]
@@ -33,8 +34,8 @@ fn test_activate_pixel() {
         assert_eq!(map.chunk(i).active_next_tick(), false);
     }
 
-    let mut api = MapApi::new(3, 2, &mut map);
-    api.activate_pixel(0, 0);
+    let mut api = MapApi::new(Vec2::new(3, 2), &mut map);
+    api.activate_pixel(Vec2::new(0, 0));
 
     for i in 0..map.chunks_count() {
         if i == 5 {

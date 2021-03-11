@@ -8,8 +8,8 @@ let startWebGL = ({ canvas, map, config }) => {
         canvas
     });
 
-    const size = map.size();
-    let ptr_pixels = map.pixels();
+    const size = map.config().size;
+    let ptr_pixels = map.display();
     let pixels = new Uint8Array(memory.buffer, ptr_pixels, size * size * 4);
     const dataTexture = regl.texture({ width: size, height: size, data: pixels });
 
@@ -38,6 +38,16 @@ let startWebGL = ({ canvas, map, config }) => {
                 color = vec4(0.76, 0.7, 0.5, 1);
             }
             
+            // dirt
+            if (element == 3) {
+                color = vec4(0.52, 0.22, 0.09, 1);
+            }
+            
+            // water
+            if (element == 4) {
+                color = vec4(0.17, 0.39, 0.9, 1);
+            }
+            
             gl_FragColor = color;
         }`,
 
@@ -52,7 +62,7 @@ let startWebGL = ({ canvas, map, config }) => {
 
         uniforms: {
             data: () => {
-                ptr_pixels = map.pixels();
+                ptr_pixels = map.display();
                 pixels = new Uint8Array(memory.buffer, ptr_pixels, size * size * 4);
 
                 return dataTexture({width: size, height: size, data: pixels});
@@ -103,7 +113,7 @@ let startWebGL = ({ canvas, map, config }) => {
     let chunkDrawCalls = [];
 
     if (config.useChunks) {
-        let scale = config.chunkSize / map.size();
+        let scale = config.chunkSize / size;
 
         for (let i = 0; i < map.chunks_count(); i++) {
             let chunk = map.chunk(i);

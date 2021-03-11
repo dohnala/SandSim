@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use crate::map::{PixelState, MapConfig, EMPTY_PIXEL_STATE, WALL_PIXEL_STATE};
+use crate::map::{MapConfig};
 use crate::rand::Random;
 use crate::element::Element;
 
@@ -13,7 +13,7 @@ pub enum MapGenerator {
 }
 
 impl MapGenerator {
-    pub fn generate_map(&self, config: &MapConfig) -> Vec<PixelState> {
+    pub fn generate_map(&self, config: &MapConfig) -> Vec<Element> {
         match self {
             MapGenerator::EMPTY => generate_empty_map(config),
             MapGenerator::CAVE => generate_cave_map(config),
@@ -22,16 +22,14 @@ impl MapGenerator {
 }
 
 // Generates a new empty map
-fn generate_empty_map(config: &MapConfig) -> Vec<PixelState> {
+fn generate_empty_map(config: &MapConfig) -> Vec<Element> {
     return (0..config.size * config.size)
-        .map(|_i| {
-            EMPTY_PIXEL_STATE
-        })
+        .map(|_i| { Element::Empty })
         .collect();
 }
 
 // Generates a new cave map
-fn generate_cave_map(config: &MapConfig) -> Vec<PixelState> {
+fn generate_cave_map(config: &MapConfig) -> Vec<Element> {
     // parameters
     let border_size = 3;
     let wall_density = 0.52;
@@ -41,17 +39,17 @@ fn generate_cave_map(config: &MapConfig) -> Vec<PixelState> {
     let mut random = Random::new(config.seed);
 
     // Create vector filled will walls
-    let mut pixels = vec![WALL_PIXEL_STATE; (config.size * config.size) as usize];
-    let mut pixels_copy = vec![WALL_PIXEL_STATE; (config.size * config.size) as usize];
+    let mut pixels = vec![Element::Wall; (config.size * config.size) as usize];
+    let mut pixels_copy = vec![Element::Wall; (config.size * config.size) as usize];
     let mut buffer_switch = true;
 
     // Generate random pixels, but leave the border with walls
     for x in border_size .. config.size - border_size {
         for y in border_size .. config.size - border_size {
             pixels[index(x, y, config)] = if random.next() <= wall_density {
-                WALL_PIXEL_STATE
+                Element::Wall
             } else {
-                EMPTY_PIXEL_STATE
+                Element::Empty
             }
         }
     }
@@ -70,7 +68,11 @@ fn generate_cave_map(config: &MapConfig) -> Vec<PixelState> {
 }
 
 // Create rooms
-fn smooth_map(config: &MapConfig, source_pixels: & Vec<PixelState>, target_pixels: &mut Vec<PixelState>, border_size: i32, wall_threshold : u8) {
+fn smooth_map(config: &MapConfig,
+              source_pixels: &Vec<Element>,
+              target_pixels: &mut Vec<Element>,
+              border_size: i32,
+              wall_threshold : u8) {
 
     // Do not process borders
     for x in border_size .. config.size - border_size {
@@ -80,16 +82,16 @@ fn smooth_map(config: &MapConfig, source_pixels: & Vec<PixelState>, target_pixel
             for neighbour_x in x-1..=x+1 {
                 for neighbour_y in y-1..=y+1 {
                     let index = index(neighbour_x, neighbour_y, config);
-                    surrounding_walls += if source_pixels[index].element() == Element::Wall {1} else {0};
+                    surrounding_walls += if source_pixels[index] == Element::Wall {1} else {0};
                 }
             }
 
             let current_index = index(x, y, config);
 
             if surrounding_walls > wall_threshold {
-                target_pixels[current_index] = WALL_PIXEL_STATE;
+                target_pixels[current_index] = Element::Wall;
             } else if surrounding_walls < wall_threshold {
-                target_pixels[current_index] = EMPTY_PIXEL_STATE
+                target_pixels[current_index] = Element::Empty
             }
         }
     }

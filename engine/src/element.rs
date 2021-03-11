@@ -1,7 +1,34 @@
 use wasm_bindgen::prelude::*;
-use crate::map::{MapApi, PixelState, MoveContext, MoveResult};
 
-// Represent an element of a pixel
+// These are all supported elements and their properties defined in static read-only memory
+
+pub static EMPTY: ElementType = ElementType::Empty(EmptyProperties {
+    friction: 0.1f32,
+});
+
+pub static WALL: ElementType = ElementType::Static(StaticProperties {
+    friction: 0.5f32,
+});
+
+pub static SAND: ElementType = ElementType::Solid(SolidProperties {
+    friction: 0.2f32,
+    restitution: 0.2f32,
+    inertia: 0.1f32,
+});
+
+pub static DIRT: ElementType = ElementType::Solid(SolidProperties {
+    friction: 0.4f32,
+    restitution: 0.125f32,
+    inertia: 0.8f32,
+});
+
+pub static WATER: ElementType = ElementType::Solid(SolidProperties {
+    friction: 0f32,
+    restitution: 1f32,
+    inertia: 0f32,
+});
+
+// Represents an element as an simple unsigned byte number, which can be used in wasm
 #[wasm_bindgen]
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -9,59 +36,62 @@ pub enum Element {
     Empty = 0,
     Wall = 1,
     Sand = 2,
+    Dirt = 3,
+    Water = 4,
 }
 
 impl Element {
-    // Update given pixel according to the element
-    pub fn update(pixel: &mut PixelState, api: &mut MapApi) {
-        match pixel.element()  {
-            Element::Empty => (),
-            Element::Wall => (),
-            Element::Sand => update_movable_solid(pixel, api),
+    // Returns a reference to a an element type which defined all properties for given element
+    pub fn element_type(element: Element) -> &'static ElementType {
+        match element {
+            Element::Empty => &EMPTY,
+            Element::Wall => &WALL,
+            Element::Sand => &SAND,
+            Element::Dirt => &DIRT,
+            Element::Water => &WATER,
         }
     }
 }
 
-// Function to update all movable solid pixels (sand, dirt, salt, ...)
-fn update_movable_solid(pixel: &mut PixelState, api: &mut MapApi) {
-    api.add_velocity(pixel, api.gravity());
-    api.move_by_velocity(pixel, move_solid);
-    api.activate_when_moved(pixel);
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ElementType {
+    Empty(EmptyProperties),
+    Static(StaticProperties),
+    Solid(SolidProperties)
 }
 
-// Function to move a solid pixel
-fn move_solid(pixel: &mut PixelState, api: &mut MapApi, context: &MoveContext) -> MoveResult {
-    match context.contact.element() {
-        // If there is an empty pixel in the movement path, we just go through it
-        Element::Empty => {
-            if context.last_move {
-                api.set_falling(pixel, true);
-                MoveResult::MOVE {x: context.x, y: context.y}
-            } else {
-                MoveResult::CONTINUE
-            }
-        },
-        // If there is anything solid in the movement path
-        _ => {
-            // If the pixel run into the solid pixel change its velocity to the average of
-            // its velocity and velocity of the pixel under it
-            api.set_velocity(pixel,(pixel.velocity_y() + context.contact.velocity_y()) / 2f32);
-
-            // If this is first move in the path, take a random horizontal direction
-            // and try to move there
-            if context.first_move {
-                let rand_x = match api.rand(&[0.5, 0.5]) {
-                    0 => -1,
-                    _ => 1,
-                };
-
-                return api.move_by_direction(
-                    pixel, rand_x, 0, context, move_solid)
-            } else {
-                // Otherwise, move to the last valid position
-                api.set_falling(pixel, false);
-                MoveResult::MOVE {x: context.last_valid_x, y: context.last_valid_y}
-            }
-        }
-    }
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct EmptyProperties {
+    // How much the velocity is reduced during the movement [0..1]
+    // 0 means no friction is applies, so the velocity is not reduced
+    // 1 means that the velocity is reduced to zero and object will not move
+    pub friction: f32,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StaticProperties {
+    // How much the velocity is reduced during the movement [0..1]
+    // 0 means no friction is applies, so the velocity is not reduced
+    // 1 means that the velocity is reduced to zero and object will not move
+    pub friction: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SolidProperties {
+    // How much the velocity is reduced during the movement [0..1]
+    // 0 means no friction is applies, so the velocity is not reduced
+    // 1 means that the velocity is reduced to zero and object will not move
+    pub friction: f32,
+
+    // How much velocity is preserved after the collision [0..1]
+    // 0 means that no velocity is preserved
+    // 1 means that all velocity is preserved
+    pub restitution: f32,
+
+    // Resistance to change in velocity [0..1]
+    // 0 means that there is no resistance
+    // 1 means that there is maximum resistance and the element will not move by applying
+    // any external force
+    pub inertia: f32,
+}
+

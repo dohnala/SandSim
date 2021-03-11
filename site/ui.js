@@ -235,15 +235,33 @@ const findInspectPixelPosition = event => {
 
 const inspectPixel = event => {
     if (inspecting && inspectPixelPosition) {
-        let pixel = map.pixel_state(inspectPixelPosition[0], inspectPixelPosition[1])
+        let pixel = map.pixel_info(inspectPixelPosition[0], inspectPixelPosition[1])
 
         if (pixel) {
             inspectDetails.show();
-            $('#inspectElement').text(elements[pixel.element()].value.name);
+            $('#inspectElement').text(elements[pixel.element].value.name);
             $('#inspectPosition').text("(" + inspectPixelPosition[0] + ", " + inspectPixelPosition[1] + ")");
-            $('#inspectVelocity').text("(0, " + pixel.velocity_y() + ")");
-            $('#inspectFalling').text(pixel.falling());
-            $('#inspectNotMovedCount').text(pixel.not_moved_count());
+
+            if (pixel.velocity_x !== undefined && pixel.velocity_y !== undefined) {
+                $('#inspectVelocity').text("(" + pixel.velocity_x + ", " + pixel.velocity_y + ")");
+                $('#inspectVelocityRow').show();
+            } else {
+                $('#inspectVelocityRow').hide();
+            }
+
+            if (pixel.falling !== undefined) {
+                $('#inspectFalling').text(pixel.falling);
+                $('#inspectFallingRow').show();
+            } else {
+                $('#inspectFallingRow').hide();
+            }
+
+            if (pixel.not_moved_count !== undefined) {
+                $('#inspectNotMovedCount').text(pixel.not_moved_count);
+                $('#inspectNotMovedCountRow').show();
+            } else {
+                $('#inspectNotMovedCountRow').hide();
+            }
         }
     } else {
         inspectDetails.hide();
