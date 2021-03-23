@@ -1,9 +1,8 @@
 import {elements, elementColorsArray} from "../vars";
-
-const reglBuilder = require("regl");
-
 import {showActiveChunks} from "../ui";
 import { memory } from "engine/engine_bg";
+
+const reglBuilder = require("regl");
 
 let map_vert = require("./shaders/map.vert");
 let map_frag = require("./shaders/map.frag");
@@ -55,54 +54,63 @@ let startWebGL = ({ canvas, map, config }) => {
         count: 3,
     });
 
-    function drawChunk(props) {
-        return regl({
-            vert: chunk_vert,
-            frag: chunk_frag,
-            attributes: {
-                position: [[-1, -1], [1, -1], [1, 1], [-1, 1]],
-            },
-            uniforms: {
-                color: [0, 1, 0, 1],
-                scale: props.scale,
-                offset: props.offset,
-            },
-            count: 4,
-            lineWidth: 1,
-            primitive: 'line loop'
-        });
-    }
-    let chunkDrawCalls = [];
+    // Draw a single chunk
+    const drawChunk = regl({
+        vert: chunk_vert,
+        frag: chunk_frag,
+        attributes: {
+            position: [[-1, -1], [1, -1], [1, 1], [-1, 1]],
+        },
+        uniforms: {
+            color: [0, 1, 0, 1],
+            scale: regl.prop('scale'),
+            offset: regl.prop('offset'),
+        },
+        count: 4,
+        lineWidth: 1,
+        primitive: 'line loop'
+    });
 
-    if (config.useChunks) {
-        let scale = config.chunkSize / mapSize;
+    // Load all map chunks
+    let chunks = (() => {
+        let chunks = [];
 
-        for (let i = 0; i < map.chunks_count(); i++) {
-            let chunk = map.chunk(i);
+        if (config.useChunks) {
+            let scale = config.chunkSize / mapSize;
 
-            chunkDrawCalls.push(drawChunk({
-                    scale: scale,
-                    offset: [-1 + scale + 2*(chunk.x()/config.size), 1 - scale - 2*(chunk.y()/config.size)],
-                }));
-        }
-    }
-
-    let drawChunks = () => {
-        if (config.useChunks && showActiveChunks) {
-            for (let i = 0; i < chunkDrawCalls.length; i++) {
+            for (let i = 0; i < map.chunks_count(); i++) {
                 let chunk = map.chunk(i);
 
-                if (chunk.active_next_tick()) {
-                    chunkDrawCalls[i]();
-                }
+                chunks.push({
+                    scale: scale,
+                    offset: [-1 + scale + 2*(chunk.x()/config.size), 1 - scale - 2*(chunk.y()/config.size)],
+                });
             }
         }
+
+        return chunks;
+    })();
+
+    // Draw active chunks
+    const drawActiveChunks = () => {
+        if (config.useChunks && showActiveChunks) {
+            drawChunk(chunks.filter((_, index) => map.chunk(index).active_next_tick()));
+        }
+    }
+
+    const drawScene = () => {
+        drawMap();
+    }
+
+    const drawDebugInfo = () => {
+        drawActiveChunks();
     }
 
     return () => {
         regl.poll();
-        drawChunks();
-        drawMap();
+
+        drawDebugInfo();
+        drawScene();
     };
 };
 
