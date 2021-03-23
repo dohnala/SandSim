@@ -1,5 +1,5 @@
 import {Map, MapConfig, MapGenerator} from "./node_modules/engine/engine.js";
-import { startWebGL } from "./render";
+import { startWebGL } from "./render/render";
 import {} from "./ui";
 import {fps, pixelsProcessed, renderTime, tickTime} from "./performance";
 
