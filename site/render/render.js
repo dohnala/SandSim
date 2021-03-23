@@ -1,3 +1,5 @@
+import {elements, elementColorsArray} from "../vars";
+
 const reglBuilder = require("regl");
 
 import {showActiveChunks} from "../ui";
@@ -13,20 +15,38 @@ let startWebGL = ({ canvas, map, config }) => {
         canvas
     });
 
-    const size = map.config().size;
-    let ptr_pixels = map.display();
-    let pixels = new Uint8Array(memory.buffer, ptr_pixels, size * size * 4);
-    const dataTexture = regl.texture({ width: size, height: size, data: pixels });
+    const mapSize = map.config().size;
 
+    // Texture with colors for all elements
+    const elementTexture = regl.texture({
+        width: elements.length,
+        height: 1,
+        type: 'uint8',
+        format: 'rgba',
+        data: new Uint8Array(elementColorsArray()),
+    });
+
+    // Texture with map pixels
+    const mapTexture = regl.texture({
+        width: mapSize,
+        height: mapSize,
+        type: 'uint8',
+        format: 'rgba',
+        data: new Uint8Array(memory.buffer, map.display(), mapSize * mapSize * 4)
+    });
+
+    // Draw all map pixels
     let drawMap = regl({
         vert: map_vert,
         frag: map_frag,
         uniforms: {
-            data: () => {
-                ptr_pixels = map.display();
-                pixels = new Uint8Array(memory.buffer, ptr_pixels, size * size * 4);
-
-                return dataTexture({width: size, height: size, data: pixels});
+            element_texture: elementTexture,
+            element_count: elements.length,
+            map_texture: () => {
+                return mapTexture({
+                    width: mapSize,
+                    height: mapSize,
+                    data: new Uint8Array(memory.buffer, map.display(), mapSize * mapSize * 4) });
             },
         },
         attributes: {
@@ -55,7 +75,7 @@ let startWebGL = ({ canvas, map, config }) => {
     let chunkDrawCalls = [];
 
     if (config.useChunks) {
-        let scale = config.chunkSize / size;
+        let scale = config.chunkSize / mapSize;
 
         for (let i = 0; i < map.chunks_count(); i++) {
             let chunk = map.chunk(i);

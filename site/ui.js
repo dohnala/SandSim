@@ -155,6 +155,10 @@ const resetMap = () => {
 // -----------------------------------------------------------------------------------------------
 let selectedElement = null;
 
+const elementColor = element => {
+    return "rgba(" + elements[element].value.color.join(",")  + ")";
+}
+
 const addElements = () => {
     for (let key in elements) {
         if (elements.hasOwnProperty(key)) {
@@ -162,7 +166,7 @@ const addElements = () => {
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="flexRadioDefault" id="element_${key}">
                     <label class="form-check-label" for="element_${key}">
-                        <i class="bi bi-square-fill" style="color: ${elements[key].value.color}"></i>
+                        <i class="bi bi-square-fill" style="color: ${elementColor(key)}"></i>
                         <label>${elements[key].value.name}</label>
                     </label>
                 </div>`;
@@ -233,7 +237,7 @@ const findInspectPixelPosition = event => {
     }
 }
 
-const inspectPixel = event => {
+const inspectPixel = () => {
     if (inspecting && inspectPixelPosition) {
         let pixel = map.pixel_info(inspectPixelPosition[0], inspectPixelPosition[1])
 
@@ -299,7 +303,7 @@ canvas.addEventListener("mousemove", event => {
     findInspectPixelPosition(event);
 });
 
-canvas.addEventListener("mouseleave", event => {
+canvas.addEventListener("mouseleave", () => {
     clearInterval(repeat);
     lastPaint = null;
     inspectPixelPosition = null;
