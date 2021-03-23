@@ -155,8 +155,18 @@ const resetMap = () => {
 // -----------------------------------------------------------------------------------------------
 let selectedElement = null;
 
+const hsv2rgb = (h, s, v) => {
+    let f = (n, k=(n+h/60)%6) => v - v*s*Math.max(Math.min(k,4-k,1),0);
+    return [f(5)*255.,f(3)*255.,f(1)*255.];
+}
+
 const elementColor = element => {
-    return "rgba(" + elements[element].value.color.join(",")  + ")";
+    let rgb = hsv2rgb(
+        elements[element].value.hsv[0],
+        elements[element].value.hsv[1],
+        elements[element].value.hsv[2]);
+
+    return "rgb(" + rgb.join(",") + ")";
 }
 
 const addElements = () => {

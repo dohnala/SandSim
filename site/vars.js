@@ -1,11 +1,11 @@
 import {Element, MapGenerator} from "engine";
 
 const elements = [
-    {key: Element.Empty, value: {name: "Empty", color: [255,255,255,255]}},
-    {key: Element.Wall, value: {name: "Wall", color: [0,0,0,255]}},
-    {key: Element.Sand, value: {name: "Sand", color: [194,178,127, 255]}},
-    {key: Element.Dirt, value: {name: "Dirt", color: [132,57,24,255]}},
-    {key: Element.Water, value: {name: "Water", color: [44,100,230,255]}}
+    {key: Element.Empty, value: {name: "Empty", hsv: [0,0,1], alpha: 0}},
+    {key: Element.Wall, value: {name: "Wall", hsv: [0,0,0], alpha: 1}},
+    {key: Element.Sand, value: {name: "Sand",  hsv: [46,0.35,0.62], alpha: 1}},
+    {key: Element.Dirt, value: {name: "Dirt", hsv: [18,0.69,0.30], alpha: 1}},
+    {key: Element.Water, value: {name: "Water", hsv: [222,0.79,0.54], alpha: 0.5}}
 ];
 
 const mapSizes = [64, 128, 256, 512];
@@ -20,7 +20,11 @@ const elementColorsArray = () => {
 
     for (let key in elements) {
         if (elements.hasOwnProperty(key)) {
-            result = result.concat(elements[key].value.color);
+            result = result.concat(
+                [elements[key].value.hsv[0] / 360.],
+                [elements[key].value.hsv[1]],
+                [elements[key].value.hsv[2]],
+                [elements[key].value.alpha]);
         }
     }
 

@@ -11,7 +11,8 @@ let chunk_frag = require("./shaders/chunk.frag");
 
 let startWebGL = ({ canvas, map, config }) => {
     const regl = reglBuilder({
-        canvas
+        extensions: ['OES_texture_float'],
+        canvas: canvas,
     });
 
     const mapSize = map.config().size;
@@ -20,17 +21,14 @@ let startWebGL = ({ canvas, map, config }) => {
     const elementTexture = regl.texture({
         width: elements.length,
         height: 1,
-        type: 'uint8',
-        format: 'rgba',
-        data: new Uint8Array(elementColorsArray()),
+        type: 'float',
+        data: elementColorsArray(),
     });
 
     // Texture with map pixels
     const mapTexture = regl.texture({
         width: mapSize,
         height: mapSize,
-        type: 'uint8',
-        format: 'rgba',
         data: new Uint8Array(memory.buffer, map.display(), mapSize * mapSize * 4)
     });
 
@@ -62,7 +60,7 @@ let startWebGL = ({ canvas, map, config }) => {
             position: [[-1, -1], [1, -1], [1, 1], [-1, 1]],
         },
         uniforms: {
-            color: [0, 1, 0, 1],
+            color: [0, 1, 0, 0.5],
             scale: regl.prop('scale'),
             offset: regl.prop('offset'),
         },

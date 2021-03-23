@@ -21,7 +21,8 @@
     "jquery": "^3.5.1",
     "regl": "^2.0.1",
     "style-loader": "^2.0.0",
-    "webpack-icons-installer": "^2.0.0"
+    "webpack-icons-installer": "^2.0.0",
+    "glsl-hsv2rgb": "^1.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.7.7",
