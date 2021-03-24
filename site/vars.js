@@ -19,11 +19,11 @@ import {Element, MapGenerator} from "engine";
 //            - if the modifier is 0.5 for example, it means that random number in range [0..0.5] will be added
 //              to the base value of HSV at runtime with speed of [Value noise speed] parameter
 const elements = [
-    {key: Element.Empty, value: {name: "Empty", hsv: [0,0,1], alpha: 0, params: [0,0,0,0]}},
+    {key: Element.Empty, value: {name: "Empty", hsv: [0,0,1], alpha: 1, params: [0,0,0,0]}},
     {key: Element.Wall, value: {name: "Wall", hsv: [0,0,0], alpha: 1, params: [0,0,0,0]}},
     {key: Element.Sand, value: {name: "Sand",  hsv: [46,0.5,0.5], alpha: 1, params: [0.2,0,0,0]}},
     {key: Element.Dirt, value: {name: "Dirt", hsv: [18,0.6,0.3], alpha: 1, params: [0.1,0,0,0]}},
-    {key: Element.Water, value: {name: "Water", hsv: [222,0.7,0.5], alpha: 0.5, params: [0.1,0.025,0.1,0]}}
+    {key: Element.Water, value: {name: "Water", hsv: [222,0.7,0.5], alpha: 1, params: [0.1,0.025,0.1,0]}}
 ];
 
 const mapSizes = [64, 128, 256, 512];

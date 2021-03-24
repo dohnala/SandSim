@@ -44,7 +44,7 @@ void main() {
     vec4 params = texture2D(element_texture, vec2(element_params_coord, element_texture_coord));
 
     // Create noise from UV coordinates which changes based on element noise speed
-    float noise = snoise3(vec3(floor(uv * float(map_size)), time * params.y));
+    float noise = snoise3(vec3(floor(uv * float(map_size/2)), time * params.y));
 
     // Change element's Value according to value modifier and noise value modifier
     float value = color.z + pixel_info.g * params.x + noise * params.z;
