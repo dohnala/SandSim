@@ -22,7 +22,7 @@ vec2 scene_coords(vec2 uv) {
 }
 
 vec2 map_coords(vec2 uv) {
-    return vec2(uv.x, 1.0 -uv.y);
+    return vec2(uv.x, 1.0 - uv.y);
 }
 
 vec2 uv_offset(int x, int y) {

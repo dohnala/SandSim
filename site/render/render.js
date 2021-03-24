@@ -84,10 +84,10 @@ let startWebGL = ({ canvas, map, config }) => {
         frag: map_frag,
         uniforms: {
             time: ({tick}) => tick,
-            element_texture_dim: elementTextureDim,
-            element_texture: elementTexture,
+            elements_size: elementTextureDim,
+            elements: elementTexture,
             map_size: mapSize,
-            map_texture: () => {
+            map: () => {
                 return mapTexture({
                     width: mapSize,
                     height: mapSize,
