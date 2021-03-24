@@ -1,9 +1,11 @@
-import {elementColorsArray, elementColorsArrayDim} from "../vars";
+import {backgroundColor, elementColorsArray, elementColorsArrayDim} from "../vars";
 import {showActiveChunks} from "../ui";
 import { memory } from "engine/engine_bg";
 
 const reglBuilder = require("regl");
 
+let background_vert = require("./shaders/background.vert");
+let background_frag = require("./shaders/background.frag");
 let map_vert = require("./shaders/map.vert");
 let map_frag = require("./shaders/map.frag");
 let chunk_vert = require("./shaders/chunk.vert");
@@ -34,6 +36,18 @@ let startWebGL = ({ canvas, map, config }) => {
         data: new Uint8Array(memory.buffer, map.display(), mapSize * mapSize * 4)
     });
 
+    let drawBackground = regl({
+        vert: background_vert,
+        frag: background_frag,
+        uniforms: {
+            color: regl.prop('color'),
+        },
+        attributes: {
+            position: [[-1, 4], [-1, -1], [4, -1]]
+        },
+        count: 3,
+    });
+
     // Draw all map pixels
     let drawMap = regl({
         vert: map_vert,
@@ -50,6 +64,16 @@ let startWebGL = ({ canvas, map, config }) => {
                     data: new Uint8Array(memory.buffer, map.display(), mapSize * mapSize * 4) });
             },
         },
+        depth: { enable: false },
+        blend: {
+            enable: true,
+            func: {
+                srcRGB: 'src alpha',
+                srcAlpha: 'src alpha',
+                dstRGB: 'one minus src alpha',
+                dstAlpha: 'one minus src alpha',
+            },
+        },
         attributes: {
             position: [[-1, 4], [-1, -1], [4, -1]]
         },
@@ -64,9 +88,12 @@ let startWebGL = ({ canvas, map, config }) => {
             position: [[-1, -1], [1, -1], [1, 1], [-1, 1]],
         },
         uniforms: {
-            color: [0, 1, 0, 0.5],
+            color: [0.3, 0.5, 0.1, 1],
             scale: regl.prop('scale'),
             offset: regl.prop('offset'),
+        },
+        blend: {
+            enable: true
         },
         count: 4,
         lineWidth: 1,
@@ -101,6 +128,11 @@ let startWebGL = ({ canvas, map, config }) => {
     }
 
     const drawScene = () => {
+        regl.clear({
+            color: [0, 0, 0, 255],
+        })
+
+        drawBackground({color: backgroundColor});
         drawMap();
     }
 
@@ -111,8 +143,8 @@ let startWebGL = ({ canvas, map, config }) => {
     return () => {
         regl.poll();
 
-        drawDebugInfo();
         drawScene();
+        drawDebugInfo();
     };
 };
 

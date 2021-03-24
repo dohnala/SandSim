@@ -1,4 +1,5 @@
 precision mediump float;
+
 attribute vec2 position;
 uniform float scale;
 uniform vec2 offset;
