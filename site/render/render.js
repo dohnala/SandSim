@@ -42,6 +42,7 @@ let startWebGL = ({ canvas, map, config }) => {
         uniforms: {
             color: regl.prop('color'),
         },
+        depth: { enable: false },
         attributes: {
             position: [[-1, 4], [-1, -1], [4, -1]]
         },
@@ -88,13 +89,11 @@ let startWebGL = ({ canvas, map, config }) => {
             position: [[-1, -1], [1, -1], [1, 1], [-1, 1]],
         },
         uniforms: {
-            color: [0.3, 0.5, 0.1, 1],
+            color: [0.3, 0.7, 0.1, 1],
             scale: regl.prop('scale'),
             offset: regl.prop('offset'),
         },
-        blend: {
-            enable: true
-        },
+        depth: { enable: false },
         count: 4,
         lineWidth: 1,
         primitive: 'line loop'
