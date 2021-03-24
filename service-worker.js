@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/SandSim/precache-manifest.949bfa716f7bbfa3913d95d3d69299f3.js"
+  "/SandSim/precache-manifest.f9e2ebe4fdd80a229858a7342692096a.js"
 );
 
 self.addEventListener('message', (event) => {
