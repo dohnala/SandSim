@@ -1,4 +1,4 @@
-import {elements, elementColorsArray} from "../vars";
+import {elementColorsArray, elementColorsArrayDim} from "../vars";
 import {showActiveChunks} from "../ui";
 import { memory } from "engine/engine_bg";
 
@@ -15,15 +15,17 @@ let startWebGL = ({ canvas, map, config }) => {
         canvas: canvas,
     });
 
-    const mapSize = map.config().size;
+    const elementTextureDim = elementColorsArrayDim();
 
     // Texture with colors for all elements
     const elementTexture = regl.texture({
-        width: elements.length,
-        height: 1,
+        width: elementTextureDim[0],
+        height: elementTextureDim[1],
         type: 'float',
         data: elementColorsArray(),
     });
+
+    const mapSize = map.config().size;
 
     // Texture with map pixels
     const mapTexture = regl.texture({
@@ -37,8 +39,10 @@ let startWebGL = ({ canvas, map, config }) => {
         vert: map_vert,
         frag: map_frag,
         uniforms: {
+            time: ({tick}) => tick,
+            element_texture_dim: elementTextureDim,
             element_texture: elementTexture,
-            element_count: elements.length,
+            map_size: mapSize,
             map_texture: () => {
                 return mapTexture({
                     width: mapSize,

@@ -43,7 +43,15 @@ impl Random {
     }
 
     // Generates random f32 in given range
-    pub fn range(&mut self, min: f32, max: f32) -> f32 {
+    pub fn f32_range(&mut self, min: f32, max: f32) -> f32 {
         self.next() * (max - min) + min
+    }
+
+    pub fn u8_range(&mut self, min: u8, max: u8) -> u8 {
+        return self.f32_range(min.into(), max.into()) as u8
+    }
+
+    pub fn u8(&mut self) -> u8 {
+        return self.u8_range(u8::min_value(), u8::max_value())
     }
 }

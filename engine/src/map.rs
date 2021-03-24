@@ -308,7 +308,9 @@ impl Map {
                     _ => Vec2::new(0.02f32, 0f32),
                 };
 
-                Pixel::Solid(SolidPixelState::new(element, properties, velocity))
+                let noise = random.u8();
+
+                Pixel::Solid(SolidPixelState::new(element, properties, velocity, noise))
             }
         }
     }

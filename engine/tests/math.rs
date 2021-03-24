@@ -1,4 +1,5 @@
 use engine::math::{Vec2, path};
+use engine::rand::Random;
 
 #[test]
 fn test_zero() {

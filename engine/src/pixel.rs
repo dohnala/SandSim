@@ -13,8 +13,9 @@ use crate::solid::update_solid;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PixelDisplayInfo {
     pub element: Element,
-    // There registers are not used so far
+    // Pixel::Solid => noise
     pub ra: u8,
+    // There registers are not used so far
     pub rb: u8,
     pub  rc: u8,
 }
@@ -22,9 +23,14 @@ pub struct PixelDisplayInfo {
 impl PixelDisplayInfo {
     // Creates a new pixel display info from given pixel
     pub fn new(pixel: &Pixel) -> PixelDisplayInfo {
+        let noise = match pixel {
+            Pixel::Solid(state) => state.noise,
+            _ => 0,
+        };
+
         PixelDisplayInfo {
             element: pixel.element(),
-            ra: 0,
+            ra: noise,
             rb: 0,
             rc: 0
         }
@@ -143,12 +149,15 @@ pub struct SolidPixelState {
     falling: bool,
     // Used to determine if the pixel was updated during a tick
     clock: u8,
+    // Random noise in [0..255] used for some effects
+    noise: u8,
 }
 
 impl SolidPixelState {
     pub fn new(element: Element,
                properties: &'static SolidProperties,
-               velocity: Vec2<f32>) -> SolidPixelState {
+               velocity: Vec2<f32>,
+               noise: u8) -> SolidPixelState {
         SolidPixelState {
             element,
             properties,
@@ -157,6 +166,7 @@ impl SolidPixelState {
             not_moved_count: 0,
             falling: true,
             clock: 0,
+            noise,
         }
     }
 }
