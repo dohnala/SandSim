@@ -11,7 +11,7 @@ uniform sampler2D scene;
 #define radius int(1)
 
 // Weight to interpolate color of pixels
-#define color_weight float(0.25)
+#define color_weight float(0.6)
 
 int element(vec4 pixel_info) {
     return int((pixel_info.r * 255.) + 0.1);
@@ -40,6 +40,8 @@ void main() {
     int neighbour_element;
     vec4 neighbour_color;
 
+    bool found_different_element = false;
+
     // Dont process empty pixels
     if (current_element != 0) {
         for (int x = -radius; x <= +radius; x++) {
@@ -49,8 +51,11 @@ void main() {
                     neighbour_element = element(texture2D(map, map_coords(uv + uv_offset(x, y))));
                     neighbour_color = texture2D(scene, scene_coords(uv + uv_offset(x, y)));
 
-                    // Only process not-empty pixels of different element
-                    if (neighbour_element != 0 && neighbour_element != current_element) {
+                    if (neighbour_element != 0) {
+                        if (neighbour_element != current_element) {
+                            found_different_element = true;
+                        }
+
                         avg_color += neighbour_color.rgb;
                         weight += 1.0;
                     }
@@ -59,7 +64,7 @@ void main() {
         }
     }
 
-    if (weight > 0.0) {
+    if (found_different_element && weight > 0.0) {
         // If some neighbours affects the color, compute the color using linear interpolation
         gl_FragColor = vec4(mix(current_color.rgb, avg_color / weight, color_weight), current_color.a);
     } else {
