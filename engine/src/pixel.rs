@@ -1,8 +1,9 @@
 use wasm_bindgen::prelude::*;
-use crate::element::{Element, EmptyProperties, StaticProperties, SolidProperties};
+use crate::element::{Element, EmptyProperties, StaticProperties, SolidProperties, LiquidProperties};
 use crate::math::Vec2;
 use crate::map::MapApi;
 use crate::solid::update_solid;
+use crate::liquid::update_liquid;
 
 // Represents an information about single pixel which is used for displaying
 // The struct size has to be exactly 32 bytes, so the array of these structs can
@@ -13,9 +14,9 @@ use crate::solid::update_solid;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PixelDisplayInfo {
     pub element: Element,
-    // Pixel::Solid => noise
+    // Pixel::Solid or Pixel::Liquid => noise
     pub ra: u8,
-    // There registers are not used so far
+    // Pixel::Solid => surrounded_liquid
     pub rb: u8,
     pub  rc: u8,
 }
@@ -28,10 +29,15 @@ impl PixelDisplayInfo {
             _ => 0,
         };
 
+        let surrounded_liquid = match pixel {
+            Pixel::Solid(state) => state.surrounded_liquid as u8,
+            _ => 0,
+        };
+
         PixelDisplayInfo {
             element: pixel.element(),
             ra: noise,
-            rb: 0,
+            rb: surrounded_liquid,
             rc: 0
         }
     }
@@ -50,6 +56,7 @@ pub struct PixelInfo {
     pub velocity_y: Option<f32>,
     pub falling: Option<bool>,
     pub not_moved_count: Option<u8>,
+    pub surrounded_liquid: Option<Element>,
 }
 
 impl PixelInfo {
@@ -59,35 +66,47 @@ impl PixelInfo {
             Pixel::Empty(state) => Some(state.properties.friction),
             Pixel::Static(state) => Some(state.properties.friction),
             Pixel::Solid(state) => Some(state.properties.friction),
+            Pixel::Liquid(state) => Some(state.properties.friction),
         };
 
         let restitution = match pixel {
             Pixel::Solid(state) => Some(state.properties.restitution),
+            Pixel::Liquid(state) => Some(state.properties.restitution),
             _ => None,
         };
 
         let inertia = match pixel {
             Pixel::Solid(state) => Some(state.properties.inertia),
+            Pixel::Liquid(state) => Some(state.properties.inertia),
             _ => None,
         };
 
         let velocity_x = match pixel {
             Pixel::Solid(state) => Some(state.velocity.x),
+            Pixel::Liquid(state) => Some(state.velocity.x),
             _ => None,
         };
 
         let velocity_y = match pixel {
             Pixel::Solid(state) => Some(state.velocity.y),
+            Pixel::Liquid(state) => Some(state.velocity.y),
             _ => None,
         };
 
         let falling = match pixel {
             Pixel::Solid(state) => Some(state.falling),
+            Pixel::Liquid(state) => Some(state.falling),
             _ => None,
         };
 
         let not_moved_count = match pixel {
             Pixel::Solid(state) => Some(state.not_moved_count),
+            Pixel::Liquid(state) => Some(state.not_moved_count),
+            _ => None,
+        };
+
+        let surrounded_liquid = match pixel {
+            Pixel::Solid(state) => Some(state.surrounded_liquid),
             _ => None,
         };
 
@@ -100,6 +119,7 @@ impl PixelInfo {
             velocity_y,
             falling,
             not_moved_count,
+            surrounded_liquid,
         }
     }
 }
@@ -110,6 +130,7 @@ pub enum Pixel {
     Empty(EmptyPixelState),
     Static(StaticPixelState),
     Solid(SolidPixelState),
+    Liquid(LiquidPixelState)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -151,6 +172,8 @@ pub struct SolidPixelState {
     clock: u8,
     // Random noise in [0..255] used for some effects
     noise: u8,
+    // Liquid element if the pixel is surrounded in liquid or 0
+    surrounded_liquid: Element,
 }
 
 impl SolidPixelState {
@@ -159,6 +182,50 @@ impl SolidPixelState {
                velocity: Vec2<f32>,
                noise: u8) -> SolidPixelState {
         SolidPixelState {
+            element,
+            properties,
+            velocity,
+            velocity_threshold: Vec2::new(0f32, 0f32),
+            not_moved_count: 0,
+            falling: true,
+            clock: 0,
+            noise,
+            surrounded_liquid: Element::Empty,
+        }
+    }
+
+    pub fn surrounded_liquid(&self) -> Element {
+        return self.surrounded_liquid;
+    }
+
+    pub fn set_surrounded_liquid(&mut self, liquid: Element) {
+        self.surrounded_liquid = liquid;
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LiquidPixelState {
+    pub element: Element,
+    pub properties: &'static LiquidProperties,
+    // Velocity controls the movement of pixel
+    velocity: Vec2<f32>,
+    velocity_threshold: Vec2<f32>,
+    // Number of updates the pixel did not moved
+    not_moved_count: u8,
+    // Flag to determine if a pixel is falling due to gravity
+    falling: bool,
+    // Used to determine if the pixel was updated during a tick
+    clock: u8,
+    // Random noise in [0..255] used for some effects
+    noise: u8,
+}
+
+impl LiquidPixelState {
+    pub fn new(element: Element,
+               properties: &'static LiquidProperties,
+               velocity: Vec2<f32>,
+               noise: u8) -> LiquidPixelState {
+        LiquidPixelState {
             element,
             properties,
             velocity,
@@ -178,6 +245,7 @@ impl Pixel {
             Pixel::Empty(_) => {},
             Pixel::Static(_) => {},
             Pixel::Solid(pixel) => update_solid(pixel, api),
+            Pixel::Liquid(pixel) => update_liquid(pixel, api),
         }
     }
 
@@ -186,6 +254,7 @@ impl Pixel {
             Pixel::Empty(pixel) => pixel.element,
             Pixel::Static(pixel) => pixel.element,
             Pixel::Solid(pixel) => pixel.element,
+            Pixel::Liquid(pixel) => pixel.element,
         }
     }
 }
@@ -242,6 +311,12 @@ impl ToPixel for SolidPixelState {
     }
 }
 
+impl ToPixel for LiquidPixelState {
+    fn to_pixel(&self) -> Pixel {
+        Pixel::Liquid(*self)
+    }
+}
+
 impl Updatable for SolidPixelState {
     fn set_clock(&mut self, clock: u8) {
         self.clock = clock;
@@ -252,7 +327,51 @@ impl Updatable for SolidPixelState {
     }
 }
 
+impl Updatable for LiquidPixelState {
+    fn set_clock(&mut self, clock: u8) {
+        self.clock = clock;
+    }
+
+    fn clock(&self) -> u8 {
+        self.clock
+    }
+}
+
 impl Movable for SolidPixelState {
+    fn set_velocity(&mut self, velocity: Vec2<f32>) {
+        self.velocity = velocity;
+    }
+
+    fn velocity(&self) -> Vec2<f32> {
+        self.velocity
+    }
+
+    fn set_velocity_threshold(&mut self, velocity_threshold: Vec2<f32>) {
+        self.velocity_threshold = velocity_threshold;
+    }
+
+    fn velocity_threshold(&self) -> Vec2<f32> {
+        self.velocity_threshold
+    }
+
+    fn set_not_moved_count(&mut self, not_moved_count: u8) {
+        self.not_moved_count = not_moved_count;
+    }
+
+    fn not_moved_count(&self) -> u8 {
+        self.not_moved_count
+    }
+
+    fn set_falling(&mut self, falling: bool) {
+        self.falling = falling;
+    }
+
+    fn falling(&self) -> bool {
+        self.falling
+    }
+}
+
+impl Movable for LiquidPixelState {
     fn set_velocity(&mut self, velocity: Vec2<f32>) {
         self.velocity = velocity;
     }

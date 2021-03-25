@@ -276,6 +276,19 @@ const inspectPixel = () => {
             } else {
                 $('#inspectNotMovedCountRow').hide();
             }
+
+            if (pixel.surrounded_liquid !== undefined && pixel.surrounded_liquid !== 0) {
+                let liquid = elements[Number(pixel.surrounded_liquid)]
+                if (liquid) {
+                    $('#inspectSurroundedLiquid').text("In " + liquid.value.name);
+                    $('#inspectSurroundedLiquidRow').show();
+                }
+                else {
+                    $('#inspectSurroundedLiquidRow').hide();
+                }
+            } else {
+                $('#inspectSurroundedLiquidRow').hide();
+            }
         }
     } else {
         inspectDetails.hide();

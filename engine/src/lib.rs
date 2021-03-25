@@ -6,3 +6,4 @@ pub mod map;
 pub mod rand;
 pub mod map_generator;
 pub mod solid;
+pub mod liquid;

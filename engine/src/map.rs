@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use crate::rand::Random;
 use crate::map_generator::MapGenerator;
 use crate::math::{Vec2, path, sign};
-use crate::pixel::{PixelDisplayInfo, Pixel, EmptyPixelState, StaticPixelState, SolidPixelState, PixelInfo, Updatable, Movable, ToPixel};
+use crate::pixel::{PixelDisplayInfo, Pixel, EmptyPixelState, StaticPixelState, SolidPixelState, PixelInfo, Updatable, Movable, ToPixel, LiquidPixelState};
 use crate::element::{Element, ElementType};
 
 // Represents a square chunk in the map which can be processed independently
@@ -255,6 +255,14 @@ impl Map {
                 } else {
                     false
                 }
+            },
+            Pixel::Liquid(state) => {
+                if self.can_update(state) {
+                    pixel.update(&mut MapApi::new(Vec2::new(x, y), self));
+                    true
+                } else {
+                    false
+                }
             }
         }
     }
@@ -311,6 +319,16 @@ impl Map {
                 let noise = random.u8();
 
                 Pixel::Solid(SolidPixelState::new(element, properties, velocity, noise))
+            },
+            ElementType::Liquid(properties) => {
+                let velocity = match random.rand(&[0.5f32, 0.5f32]) {
+                    0 => Vec2::new(-0.02f32, 0f32),
+                    _ => Vec2::new(0.02f32, 0f32),
+                };
+
+                let noise = random.u8();
+
+                Pixel::Liquid(LiquidPixelState::new(element, properties, velocity, noise))
             }
         }
     }
@@ -538,6 +556,18 @@ impl<'a> MapApi<'a> {
                     self.set_pixel(pos, &state.to_pixel());
                 }
             },
+            Pixel::Liquid(mut state) => {
+                let displace = match self.random().rand(
+                    &[state.properties.inertia, 1f32 - state.properties.inertia]) {
+                    0 => false,
+                    _ => true,
+                };
+
+                if displace {
+                    self.set_falling(&mut state, true);
+                    self.set_pixel(pos, &state.to_pixel());
+                }
+            },
         }
     }
 
@@ -614,12 +644,24 @@ impl<'a> MapApi<'a> {
                     continue
                 },
                 // Finalize the movement by swapping the pixels and activating them
-                MoveResult::MOVE {pos: move_pos} => {
+                MoveResult::SWAP {pos: move_pos} => {
                     if self.moved(move_pos) {
                         // Reset not moved count flag
                         pixel.set_not_moved_count(0);
                         // Swap pixels
                         self.swap(&pixel.to_pixel(), move_pos);
+                        return;
+                    } else {
+                        break;
+                    }
+                },
+                // Finalize the movement by replacing the pixel on given position
+                MoveResult::REPLACE {pos: replace_pos} => {
+                    if self.moved(replace_pos) {
+                        // Reset not moved count flag
+                        pixel.set_not_moved_count(0);
+                        // Replace pixel
+                        self.replace(&pixel.to_pixel(), replace_pos);
                         return;
                     } else {
                         break;
@@ -679,6 +721,16 @@ impl<'a> MapApi<'a> {
         self.activate_surrounding_pixels(pos);
     }
 
+    // Replaces pixel on given position
+    fn replace(&mut self, pixel: &Pixel, pos: Vec2<i32>) {
+        let empty_pixel = Map::create_pixel(Element::Empty, &mut self.map.random);
+
+        self.set_pixel(Vec2::new(0, 0), &empty_pixel);
+        self.activate_surrounding_pixels(Vec2::new(0, 0));
+        self.set_pixel(pos, pixel);
+        self.activate_surrounding_pixels(pos);
+    }
+
     fn moved(&self, pos: Vec2<i32>) -> bool {
         pos.x != 0 || pos.y != 0
     }
@@ -703,7 +755,12 @@ impl MoveContext {
 }
 
 pub enum MoveResult {
+    // Continue moving
     CONTINUE,
+    // Stop moving and return to the last valid position
     STOP,
-    MOVE {pos: Vec2<i32>}
+    // Swap the pixel with pixel in given position
+    SWAP {pos: Vec2<i32>},
+    // Replace the pixel on given position
+    REPLACE {pos: Vec2<i32>},
 }
