@@ -22,7 +22,7 @@ pub static DIRT: ElementType = ElementType::Solid(SolidProperties {
     inertia: 0.8f32,
 });
 
-pub static WATER: ElementType = ElementType::Solid(SolidProperties {
+pub static WATER: ElementType = ElementType::Liquid(LiquidProperties {
     friction: 0f32,
     restitution: 1f32,
     inertia: 0f32,
@@ -57,7 +57,8 @@ impl Element {
 pub enum ElementType {
     Empty(EmptyProperties),
     Static(StaticProperties),
-    Solid(SolidProperties)
+    Solid(SolidProperties),
+    Liquid(LiquidProperties),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -78,6 +79,25 @@ pub struct StaticProperties {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SolidProperties {
+    // How much the velocity is reduced during the movement [0..1]
+    // 0 means no friction is applies, so the velocity is not reduced
+    // 1 means that the velocity is reduced to zero and object will not move
+    pub friction: f32,
+
+    // How much velocity is preserved after the collision [0..1]
+    // 0 means that no velocity is preserved
+    // 1 means that all velocity is preserved
+    pub restitution: f32,
+
+    // Resistance to change in velocity [0..1]
+    // 0 means that there is no resistance
+    // 1 means that there is maximum resistance and the element will not move by applying
+    // any external force
+    pub inertia: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LiquidProperties {
     // How much the velocity is reduced during the movement [0..1]
     // 0 means no friction is applies, so the velocity is not reduced
     // 1 means that the velocity is reduced to zero and object will not move

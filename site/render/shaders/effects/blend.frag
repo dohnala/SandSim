@@ -11,7 +11,7 @@ uniform sampler2D scene;
 #define radius int(1)
 
 // Weight to interpolate color of pixels
-#define color_weight float(0.6)
+#define color_weight float(0.5)
 
 int element(vec4 pixel_info) {
     return int((pixel_info.r * 255.) + 0.1);

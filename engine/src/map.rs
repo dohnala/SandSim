@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use crate::rand::Random;
 use crate::map_generator::MapGenerator;
 use crate::math::{Vec2, path, sign};
-use crate::pixel::{PixelDisplayInfo, Pixel, EmptyPixelState, StaticPixelState, SolidPixelState, PixelInfo, Updatable, Movable, ToPixel};
+use crate::pixel::{PixelDisplayInfo, Pixel, EmptyPixelState, StaticPixelState, SolidPixelState, PixelInfo, Updatable, Movable, ToPixel, LiquidPixelState};
 use crate::element::{Element, ElementType};
 
 // Represents a square chunk in the map which can be processed independently
@@ -147,11 +147,11 @@ impl Map {
     }
 
     // Inserts a new pixels of given element in radius from x,y
-    pub fn insert(&mut self, x: i32, y: i32, element: Element, radius: i32) {
+    pub fn paint(&mut self, x: i32, y: i32, element: Element, radius: i32) {
         for i in -radius..=radius {
             for j in -radius..=radius {
                 if i*i + j*j <= radius*radius {
-                    self.insert_pixel(Vec2::new(x, y) + Vec2::new(i, j), element);
+                    self.paint_pixel(Vec2::new(x, y) + Vec2::new(i, j), element);
                 }
             }
         }
@@ -255,6 +255,14 @@ impl Map {
                 } else {
                     false
                 }
+            },
+            Pixel::Liquid(state) => {
+                if self.can_update(state) {
+                    pixel.update(&mut MapApi::new(Vec2::new(x, y), self));
+                    true
+                } else {
+                    false
+                }
             }
         }
     }
@@ -271,12 +279,12 @@ impl Map {
     }
 
     // Inserts a new pixel of given element at given position
-    fn insert_pixel(&mut self, pos: Vec2<i32>, element: Element) {
+    fn paint_pixel(&mut self, pos: Vec2<i32>, element: Element) {
         if self.out_of_bounds(pos) {
             return;
         }
 
-        let allow_insert = match self.pixel(pos.x, pos.y) {
+        let allow_paint = match self.pixel(pos.x, pos.y) {
             Pixel::Empty(_) => true,
             _ => match Element::element_type(element) {
                 ElementType::Empty(_) => true,
@@ -284,7 +292,7 @@ impl Map {
             }
         };
 
-        if allow_insert {
+        if allow_paint {
             let index = self.pixel_index(pos);
             let pixel = Map::create_pixel(element, &mut self.random);
 
@@ -311,6 +319,16 @@ impl Map {
                 let noise = random.u8();
 
                 Pixel::Solid(SolidPixelState::new(element, properties, velocity, noise))
+            },
+            ElementType::Liquid(properties) => {
+                let velocity = match random.rand(&[0.5f32, 0.5f32]) {
+                    0 => Vec2::new(-0.02f32, 0f32),
+                    _ => Vec2::new(0.02f32, 0f32),
+                };
+
+                let noise = random.u8();
+
+                Pixel::Liquid(LiquidPixelState::new(element, properties, velocity, noise))
             }
         }
     }
@@ -428,7 +446,9 @@ impl Map {
 
 // Map API which pixels can use to define its behavior
 pub struct MapApi<'a> {
+    old_pos: Vec2<i32>,
     pos: Vec2<i32>,
+    removed: bool,
     map: &'a mut Map,
 }
 
@@ -436,7 +456,9 @@ impl<'a> MapApi<'a> {
     // Creates a new Map api for pixel at x, y
     pub fn new(pos: Vec2<i32>, map: &'a mut Map) -> MapApi {
         MapApi {
+            old_pos: pos,
             pos,
+            removed: false,
             map,
         }
     }
@@ -475,8 +497,9 @@ impl<'a> MapApi<'a> {
         self.map.pixel(new_pos.x, new_pos.y)
     }
 
-    // Sets a pixel at to a direction (dx, dy) relative to current pixel
-    pub fn set_pixel(&mut self, dir: Vec2<i32>, pixel: &Pixel) {
+    // Sets a pixel at to a direction (dx, dy) relative to current pixel and activate it
+    // if set
+    pub fn set_pixel(&mut self, dir: Vec2<i32>, pixel: &Pixel, activate: bool) {
         let new_pos = self.pos + dir;
 
         if self.map.out_of_bounds(new_pos) {
@@ -487,6 +510,10 @@ impl<'a> MapApi<'a> {
 
         self.map.pixels[index] = *pixel;
         self.map.display[index] = PixelDisplayInfo::new(pixel);
+
+        if activate {
+            self.activate_surrounding_pixels(dir);
+        }
     }
 
     // Activates pixel on given relative position, so it will be processed next tick
@@ -500,43 +527,30 @@ impl<'a> MapApi<'a> {
         self.map.activate_surrounding_pixels(self.pos + dir);
     }
 
+    // Insert a new pixel of given element on given relative position
+    pub fn insert_pixel(&mut self, dir: Vec2<i32>, element: Element) {
+        let pixel = &Map::create_pixel(element,  &mut self.map.random);
+
+        self.set_pixel(dir, &pixel, true);
+    }
+
     // Returns a direction of pixel's normalized velocity
     pub fn direction<T: Movable>(&self, pixel: &T) -> Vec2<i32> {
         pixel.velocity().direction()
     }
 
-    // Activates the pixel when moved with respect to given not moved threshold
-    // so even when a pixel does not move with less ticks then this threshold, we will
-    // still update it
-    pub fn activate_when_moved<T: Movable + ToPixel>(&mut self, pixel: &mut T) {
-        if pixel.not_moved_count() >= self.map.not_moved_threshold {
-            pixel.set_not_moved_count(self.map.not_moved_threshold);
-            self.set_pixel(Vec2::new(0, 0), &pixel.to_pixel());
-        }
-
-        if pixel.falling() || pixel.not_moved_count() < self.map.not_moved_threshold {
-            self.activate_pixel(Vec2::new(0, 0));
-        }
-    }
-
-    // Displaces a pixel on given position according to its inertia
-    pub fn displace(&mut self, pos: Vec2<i32>) {
-        let pixel = self.pixel(pos);
-
-        match pixel {
+    // Displaces a pixel on given direction according to its inertia
+    pub fn displace(&mut self, dir: Vec2<i32>) {
+        match  self.pixel(dir) {
             Pixel::Empty(_) => {},
             Pixel::Static(_) => {},
-            Pixel::Solid(mut state) => {
-                let displace = match self.random().rand(
-                    &[state.properties.inertia, 1f32 - state.properties.inertia]) {
-                    0 => false,
-                    _ => true,
-                };
-
-                if displace {
-                    self.set_falling(&mut state, true);
-                    self.set_pixel(pos, &state.to_pixel());
-                }
+            Pixel::Solid(mut pixel) => {
+                let inertia = pixel.properties.inertia;
+                self.displace_pixel(dir, &mut pixel, inertia)
+            },
+            Pixel::Liquid(mut pixel) => {
+                let inertia = pixel.properties.inertia;
+                self.displace_pixel(dir, &mut pixel, inertia)
             },
         }
     }
@@ -558,7 +572,7 @@ impl<'a> MapApi<'a> {
             pixel.velocity().x.abs(),
             pixel.velocity().y.abs());
 
-        let pos_x = if velocity_size.x < 1f32 {
+        let dir_x = if velocity_size.x < 1f32 {
             let velocity_threshold_x = pixel.velocity_threshold().x + velocity_size.x;
             let velocity_x = velocity_threshold_x as i32;
             if velocity_x > 0 {
@@ -574,7 +588,7 @@ impl<'a> MapApi<'a> {
             pixel.velocity().x as i32
         };
 
-        let pos_y = if velocity_size.y < 1f32 {
+        let dir_y = if velocity_size.y < 1f32 {
             let velocity_threshold_y = pixel.velocity_threshold().y + velocity_size.y;
             let velocity_y = velocity_threshold_y as i32;
             if velocity_y > 0 {
@@ -590,59 +604,82 @@ impl<'a> MapApi<'a> {
             pixel.velocity().y as i32
         };
 
-        let target_pos = Vec2::new(pos_x, pos_y);
+        let target_dir = Vec2::new(dir_x, dir_y);
 
-        // Keep track of last valid position during the movement
-        let mut last_valid_pos = Vec2::new(0, 0);
+        // Keep track of last valid direction during the movement
+        let mut last_valid_dir = Vec2::new(0, 0);
 
-        for (i, pos) in path(
-            Vec2::new(0, 0), target_pos).enumerate() {
+        for (i, dir) in path(
+            Vec2::new(0, 0), target_dir).enumerate() {
 
-            let mut contact = self.pixel(pos);
+            let mut contact = self.pixel(dir);
 
             let result = move_f(pixel, &mut contact, self, &mut MoveContext::new(
-                pos,
+                dir,
                 i == 0,
-                pos == target_pos,
-                last_valid_pos,
+                dir == target_dir,
+                last_valid_dir,
                 0));
 
             match result {
-                // Continue moving along the path and update last valid position
+                // Continue moving along the path and update last valid direction
                 MoveResult::CONTINUE => {
-                    last_valid_pos = pos;
+                    last_valid_dir = dir;
                     continue
                 },
                 // Finalize the movement by swapping the pixels and activating them
-                MoveResult::MOVE {pos: move_pos} => {
-                    if self.moved(move_pos) {
-                        // Reset not moved count flag
+                MoveResult::SWAP {dir: move_dir } => {
+                    if move_dir.x != 0 || move_dir.y != 0 {
                         pixel.set_not_moved_count(0);
-                        // Swap pixels
-                        self.swap(&pixel.to_pixel(), move_pos);
-                        return;
-                    } else {
-                        break;
-                    }
-                },
-                MoveResult::STOP => {
-                    if self.moved(last_valid_pos) {
-                        // Reset not moved count flag
-                        pixel.set_not_moved_count(0);
-                        // Swap pixels
-                        self.swap(&pixel.to_pixel(), last_valid_pos);
+                        self.swap(&pixel.to_pixel(), move_dir);
+                        self.pos += move_dir;
+                        self.activate_when_moved(pixel);
                         return;
                     } else {
                         break;
                     }
                 }
+                // Finalize the movement by replacing the pixel on given direction
+                MoveResult::REPLACE {dir: replace_dir } => {
+                    if replace_dir.x != 0 || replace_dir.y != 0 {
+                        pixel.set_not_moved_count(0);
+                        self.replace(&pixel.to_pixel(), replace_dir);
+                        self.pos += replace_dir;
+                        self.activate_when_moved(pixel);
+                        return;
+                    } else {
+                        break;
+                    }
+                }
+                // Removes the pixel from the map
+                MoveResult::REMOVE => {
+                    self.remove(Vec2::new(0, 0));
+                    self.removed = true;
+                    return;
+                },
+                MoveResult::STOP => {
+                    if last_valid_dir.x != 0 || last_valid_dir.y != 0 {
+                        pixel.set_not_moved_count(0);
+                        self.swap(&pixel.to_pixel(), last_valid_dir);
+                        self.pos += last_valid_dir;
+                        self.activate_when_moved(pixel);
+                        return;
+                    } else {
+                        break;
+                    }
+                },
             }
         }
 
         // If we did not move, increment not moved count,and update itself
         // so the changes are stored
         pixel.set_not_moved_count(pixel.not_moved_count() + 1);
-        self.set_pixel(Vec2::new(0, 0), &pixel.to_pixel());
+        if pixel.not_moved_count() >= self.map.not_moved_threshold {
+            pixel.set_not_moved_count(self.map.not_moved_threshold);
+        }
+        self.set_pixel(Vec2::new(0, 0), &pixel.to_pixel(), false);
+
+        self.activate_when_moved(pixel);
     }
 
     // Moves to a neighbor position using given unit direction and pass a new context
@@ -651,59 +688,189 @@ impl<'a> MapApi<'a> {
     // This can only be called inside move function where the move context is available
     pub fn move_by_direction<T: Movable>(&mut self,
                                          pixel: &mut T,
+                                         contact_falling: bool,
                                          dir: Vec2<i32>,
                                          context: &MoveContext,
                                          move_f: fn(&mut T,
                                                     &mut Pixel,
                                                     &mut MapApi,
                                                     &MoveContext) -> MoveResult) -> MoveResult {
-        let mut contact = self.pixel(context.last_valid_pos + dir);
+        // Try to move diagonally according to direction
+        if dir.x != 0 && dir.y != 0 {
+            match self._move_by_direction(pixel, contact_falling, dir, context, move_f) {
+                MoveResult::STOP => {},
+                result=> {
+                    return result;
+                }
+            }
+        }
 
-        return move_f(pixel, &mut contact, self, &MoveContext::new(
-            context.last_valid_pos + dir,
-            false,
-            true,
-            context.last_valid_pos,
-            context.depth + 1));
+        // Try to vertically according to direction
+        if dir.y != 0 {
+            match self._move_by_direction(pixel, contact_falling, Vec2::new(0, dir.y), context, move_f) {
+                MoveResult::STOP => {},
+                result=> {
+                    return result;
+                }
+            }
+        }
+
+        // Try to move horizontally according to direction
+        if dir.x != 0 {
+            match self._move_by_direction(pixel, contact_falling, Vec2::new(dir.x, 0), context, move_f) {
+                MoveResult::STOP => {},
+                result=> {
+                    return result;
+                }
+            }
+        }
+
+        // Stop the movement
+        self.set_falling(pixel, contact_falling);
+        return MoveResult::STOP;
+    }
+
+    // Returns whether the pixel has moved
+    pub fn moved<T: Movable + ToPixel>(&self, pixel: &T) -> bool {
+        if self.old_pos.x != self.pos.x || self.old_pos.y != self.pos.y {
+            true
+        } else {
+            pixel.not_moved_count() < self.map.not_moved_threshold
+        }
+    }
+
+    // Returns whether the pixel has been removed
+    pub fn removed(&self) -> bool {
+        self.removed
+    }
+
+    // Displaces given pixel on given direction according given inertia
+    fn displace_pixel<T: Movable + ToPixel>(&mut self, dir: Vec2<i32>, pixel: &mut T, inertia: f32) {
+        // Pixel which is falling cannot be displaced
+        if pixel.falling() {
+            return;
+        }
+
+        let displace = match self.random().rand(
+            &[inertia, 1f32 - inertia]) {
+            0 => false,
+            _ => true,
+        };
+
+        if displace {
+            // Reset not moved count
+            pixel.set_not_moved_count(0);
+
+            // Generate small velocity on x if its zero
+            if pixel.velocity().x < 1f32 {
+                let displace_velocity_x = self.random().f32_range(-1f32, 1f32);
+                pixel.set_velocity(pixel.velocity() + Vec2::new(displace_velocity_x, 0f32));
+            }
+
+            self.set_pixel(dir, &pixel.to_pixel(), true);
+        }
     }
 }
 impl<'a> MapApi<'a> {
-    // Swaps given pixel with pixel on given position
-    fn swap(&mut self, pixel: &Pixel, pos: Vec2<i32>) {
-        // Swap the pixels and activate them
-        let target_pixel = self.pixel(pos);
+    // Swaps given pixel with pixel on given direction
+    fn swap(&mut self, pixel: &Pixel, dir: Vec2<i32>) {
 
-        self.set_pixel(Vec2::new(0, 0), &target_pixel);
-        self.activate_surrounding_pixels(Vec2::new(0, 0));
-        self.set_pixel(pos, pixel);
-        self.activate_surrounding_pixels(pos);
+        // Swap the pixels and activate them
+        let target_pixel = self.pixel(dir);
+
+        self.set_pixel(Vec2::new(0, 0), &target_pixel, true);
+        self.set_pixel(dir, pixel, true);
     }
 
-    fn moved(&self, pos: Vec2<i32>) -> bool {
-        pos.x != 0 || pos.y != 0
+    // Replaces the pixel on given direction
+    fn replace(&mut self, pixel: &Pixel, dir: Vec2<i32>) {
+        self.remove(Vec2::new(0, 0));
+        self.set_pixel(dir, pixel, true);
+    }
+
+    // Removes the pixel from given direction
+    fn remove(&mut self, dir: Vec2<i32>) {
+        self.insert_pixel(dir,Element::Empty);
+    }
+
+    // Activates a pixel when falling or has moved, so it is processed next frame
+    fn activate_when_moved<T: Movable + ToPixel>(&mut self, pixel: &mut T) {
+        if pixel.falling() || self.moved(pixel) {
+            self.activate_pixel(Vec2::new(0, 0));
+        }
+    }
+
+    fn _move_by_direction<T: Movable>(&mut self,
+                                      pixel: &mut T,
+                                      contact_falling: bool,
+                                      dir: Vec2<i32>,
+                                      context: &MoveContext,
+                                      move_f: fn(&mut T,
+                                                 &mut Pixel,
+                                                 &mut MapApi,
+                                                 &MoveContext) -> MoveResult) -> MoveResult {
+        let mut contact = self.pixel(context.last_valid_dir + dir);
+
+        let result = move_f(pixel, &mut contact, self, &MoveContext::new(
+            context.last_valid_dir + dir,
+            false,
+            true,
+            context.last_valid_dir,
+            context.depth + 1));
+
+        match result {
+            // Set falling flag if can move on y, otherwise according to contact
+            MoveResult::CONTINUE | MoveResult::SWAP { dir: _ } | MoveResult::REPLACE { dir: _ } => {
+                self.set_falling(pixel, if dir.y == 0 { contact_falling } else { true });
+                return result;
+            },
+            // Remove falling flag if removed
+            MoveResult::REMOVE => {
+                self.set_falling(pixel, false);
+                return result;
+            }
+            // Remove falling flag if stopped
+            MoveResult::STOP => {
+                self.set_falling(pixel, if dir.y == 0 { contact_falling } else { true });
+
+                if dir.y == 0 {
+                    // Change velocity direction on x
+                    self.set_velocity(pixel, Vec2::new(
+                        pixel.velocity().x * -1f32, pixel.velocity().y));
+                }
+                return result;
+            }
+        }
     }
 }
 
 pub struct MoveContext<> {
-    pub pos: Vec2<i32>,
+    pub dir: Vec2<i32>,
     pub first_move: bool,
     pub last_move: bool,
-    pub last_valid_pos: Vec2<i32>,
+    pub last_valid_dir: Vec2<i32>,
     pub depth: u8,
 }
 
 impl MoveContext {
-    pub fn new(pos: Vec2<i32>,
+    pub fn new(dir: Vec2<i32>,
                first_move: bool,
                last_move: bool,
-               last_valid_pos: Vec2<i32>,
+               last_valid_dir: Vec2<i32>,
                depth: u8) -> MoveContext {
-        MoveContext { pos, first_move, last_move, last_valid_pos, depth }
+        MoveContext { dir, first_move, last_move, last_valid_dir, depth }
     }
 }
 
 pub enum MoveResult {
+    // Continue moving
     CONTINUE,
+    // Stop moving and return to the last valid direction
     STOP,
-    MOVE {pos: Vec2<i32>}
+    // Swap the pixel with pixel in given direction
+    SWAP {dir: Vec2<i32>},
+    // Replace the pixel on given direction
+    REPLACE {dir: Vec2<i32>},
+    // Removes pixel
+    REMOVE,
 }

@@ -122,3 +122,22 @@ fn test_generate_chunk_with_smaller_size() {
     assert_eq!(map.chunk(3).x(), 4);
     assert_eq!(map.chunk(3).y(), 4);
 }
+
+fn check_liquid_pixel_count() {
+    let mut liquid_pixel_count = 0;
+    let mut absorbed_liquid_pixel_count = 0;
+
+    for pixel in self.pixels.iter() {
+        match pixel {
+            Pixel::Liquid(_) => {
+                liquid_pixel_count += 1;
+            },
+            Pixel::Solid(solid) => if solid.absorbed_liquid() != Element::Empty {
+                absorbed_liquid_pixel_count += 1;
+            },
+            _ => {},
+        }
+    }
+
+    //log!("{}", liquid_pixel_count + absorbed_liquid_pixel_count);
+}
