@@ -30,7 +30,7 @@ impl PixelDisplayInfo {
         };
 
         let surrounded_liquid = match pixel {
-            Pixel::Solid(state) => state.surrounded_liquid as u8,
+            Pixel::Solid(state) => state.absorbed_liquid as u8,
             _ => 0,
         };
 
@@ -56,7 +56,7 @@ pub struct PixelInfo {
     pub velocity_y: Option<f32>,
     pub falling: Option<bool>,
     pub not_moved_count: Option<u8>,
-    pub surrounded_liquid: Option<Element>,
+    pub absorbed_liquid: Option<Element>,
 }
 
 impl PixelInfo {
@@ -105,8 +105,8 @@ impl PixelInfo {
             _ => None,
         };
 
-        let surrounded_liquid = match pixel {
-            Pixel::Solid(state) => Some(state.surrounded_liquid),
+        let absorbed_liquid = match pixel {
+            Pixel::Solid(state) => Some(state.absorbed_liquid),
             _ => None,
         };
 
@@ -119,7 +119,7 @@ impl PixelInfo {
             velocity_y,
             falling,
             not_moved_count,
-            surrounded_liquid,
+            absorbed_liquid,
         }
     }
 }
@@ -172,8 +172,8 @@ pub struct SolidPixelState {
     clock: u8,
     // Random noise in [0..255] used for some effects
     noise: u8,
-    // Liquid element if the pixel is surrounded in liquid or 0
-    surrounded_liquid: Element,
+    // Liquid element this pixel absorbed
+    absorbed_liquid: Element,
 }
 
 impl SolidPixelState {
@@ -190,16 +190,16 @@ impl SolidPixelState {
             falling: true,
             clock: 0,
             noise,
-            surrounded_liquid: Element::Empty,
+            absorbed_liquid: Element::Empty,
         }
     }
 
-    pub fn surrounded_liquid(&self) -> Element {
-        return self.surrounded_liquid;
+    pub fn absorbed_liquid(&self) -> Element {
+        return self.absorbed_liquid;
     }
 
-    pub fn set_surrounded_liquid(&mut self, liquid: Element) {
-        self.surrounded_liquid = liquid;
+    pub fn set_absorbed_liquid(&mut self, liquid: Element) {
+        self.absorbed_liquid = liquid;
     }
 }
 

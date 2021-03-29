@@ -1,13 +1,14 @@
 use crate::map::{MapApi, MoveContext, MoveResult};
 use crate::math::{Vec2, sign};
-use crate::pixel::{SolidPixelState, Pixel, Movable};
+use crate::pixel::{SolidPixelState, Pixel, Movable, ToPixel};
 use crate::element::Element;
 
 // Function to update all solid pixels
 pub fn update_solid(pixel: &mut SolidPixelState, api: &mut MapApi) {
     api.add_velocity(pixel, api.gravity());
     api.move_by_velocity(pixel,move_solid);
-    api.activate_when_moved(pixel);
+
+    spread_absorbed_liquid(pixel, api);
 }
 
 // Function to move a solid pixel
@@ -15,17 +16,16 @@ fn move_solid(pixel: &mut SolidPixelState,
               contact: &mut Pixel,
               api: &mut MapApi,
               context: &MoveContext) -> MoveResult {
-
     match contact {
         // If there is an empty pixel in the movement path, we just go through it
         Pixel::Empty(contact_pixel) => {
             // Try to displace adjacent pixels
-            api.displace(context.last_valid_pos + Vec2::new(-1, 0));
-            api.displace(context.last_valid_pos + Vec2::new(1, 0));
+            api.displace(context.last_valid_dir + Vec2::new(-1, 0));
+            api.displace(context.last_valid_dir + Vec2::new(1, 0));
 
             if context.last_move {
                 api.set_falling(pixel, true);
-                return MoveResult::SWAP {pos: context.pos};
+                MoveResult::SWAP { dir: context.dir }
             } else {
                 // Apply air resistance when falling
                 if context.first_move && pixel.falling() {
@@ -39,6 +39,7 @@ fn move_solid(pixel: &mut SolidPixelState,
         },
         Pixel::Static(contact_pixel) => {
             if context.depth > 0 {
+                api.set_falling(pixel, false);
                 return MoveResult::STOP;
             }
 
@@ -48,10 +49,12 @@ fn move_solid(pixel: &mut SolidPixelState,
                 false,
                 api);
 
-            return move_by_direction(pixel, false,direction, api, context);
+            return api.move_by_direction(pixel, false,
+                                         direction, context, move_solid);
         },
         Pixel::Solid(contact_pixel) => {
             if context.depth > 0 {
+                api.set_falling(pixel, contact_pixel.falling());
                 return MoveResult::STOP;
             }
 
@@ -61,26 +64,36 @@ fn move_solid(pixel: &mut SolidPixelState,
                 contact_pixel.falling(),
                 api);
 
-            return move_by_direction(pixel, contact_pixel.falling(), direction, api, context);
+            return api.move_by_direction(pixel, contact_pixel.falling(),
+                                         direction, context, move_solid);
         },
         Pixel::Liquid(contact_pixel) => {
             if context.depth > 0 {
                 // Try to displace adjacent pixels
-                api.displace(context.last_valid_pos + Vec2::new(-1, 0));
-                api.displace(context.last_valid_pos + Vec2::new(1, 0));
+                api.displace(context.last_valid_dir + Vec2::new(-1, 0));
+                api.displace(context.last_valid_dir + Vec2::new(1, 0));
                 api.set_falling(pixel, true);
 
-                if pixel.surrounded_liquid() == Element::Empty {
-                    pixel.set_surrounded_liquid(contact_pixel.element);
-                    return MoveResult::REPLACE {pos: context.pos};
+                if pixel.absorbed_liquid() == Element::Empty {
+                    pixel.set_absorbed_liquid(contact_pixel.element);
+                    return MoveResult::REPLACE { dir: context.dir };
                 } else {
-                    return MoveResult::SWAP {pos: context.pos};
+                    return MoveResult::SWAP { dir: context.dir };
                 }
             }
 
-            let direction = handle_liquid_collision(pixel, api);
+            let direction = if contact_pixel.falling() {
+                handle_solid_collision(
+                    pixel,
+                    contact_pixel.properties.friction,
+                    contact_pixel.falling(),
+                    api)
+            } else {
+                handle_liquid_collision(pixel, api)
+            };
 
-            return move_by_direction(pixel, true, direction, api, context);
+            return api.move_by_direction(pixel, true,
+                                         direction, context, move_solid)
         },
     }
 }
@@ -118,60 +131,61 @@ fn handle_liquid_collision(pixel: &mut SolidPixelState, api: &mut MapApi) -> Vec
     return api.direction(pixel);
 }
 
-fn move_by_direction(pixel: &mut SolidPixelState,
-                     contact_falling: bool,
-                     direction: Vec2<i32>,
-                     api: &mut MapApi,
-                     context: &MoveContext) -> MoveResult {
-    // Try to move diagonally according to direction
-    if direction.x != 0 && direction.y != 0 {
-        match api.move_by_direction(pixel, direction, context, move_solid) {
-            MoveResult::SWAP { pos } => {
-                api.set_falling(pixel, true);
-                return MoveResult::SWAP {pos};
-            },
-            MoveResult::REPLACE { pos } => {
-                api.set_falling(pixel, true);
-                return MoveResult::REPLACE {pos};
+// Spread absorbed liquid around
+fn spread_absorbed_liquid(pixel: &mut SolidPixelState, api: &mut MapApi) {
+    if pixel.falling() || api.removed() || pixel.absorbed_liquid() == Element::Empty {
+        return;
+    }
+
+    let dir_x = match api.random().rand(&[0.5f32, 0.5f32]) {
+        0 => -1,
+        _ => 1,
+    };
+
+    let dirs = [
+        Vec2::new(0, 1),
+        Vec2::new(dir_x, 1),
+        Vec2::new(-dir_x, 1),
+        Vec2::new(dir_x, 0),
+        Vec2::new(-dir_x, 0),
+    ];
+
+    for dir in dirs.iter() {
+        if spread_absorbed_liquid_dir(pixel, *dir, api) {
+            return;
+        }
+    }
+}
+
+// Spreads the absorbed liquid in given direction
+fn spread_absorbed_liquid_dir(pixel: &mut SolidPixelState,
+                              dir: Vec2<i32>,
+                              api: &mut MapApi) -> bool {
+    match api.pixel(dir) {
+        Pixel::Empty(_) => {
+            api.insert_pixel(dir, pixel.absorbed_liquid());
+            pixel.set_absorbed_liquid(Element::Empty);
+            api.set_pixel(Vec2::new(0, 0), &pixel.to_pixel(), true);
+
+            // Try to displace adjacent pixels
+            api.displace(dir + Vec2::new(-1, 0));
+            api.displace(dir + Vec2::new(1, 0));
+
+            return true;
+        },
+        Pixel::Solid(mut other) => {
+            if other.absorbed_liquid() == Element::Empty {
+                other.set_absorbed_liquid(pixel.absorbed_liquid());
+                api.set_pixel(dir, &other.to_pixel(), true);
+                pixel.set_absorbed_liquid(Element::Empty);
+                api.set_pixel(Vec2::new(0, 0), &pixel.to_pixel(), true);
+                return true;
+            } else {
+                return false;
             }
-            _ => {},
-        }
+        },
+        _ => {
+            return false;
+        },
     }
-
-    // Try to vertically according to direction
-    if direction.y != 0 {
-        match api.move_by_direction(pixel, Vec2::new(0, direction.y), context, move_solid) {
-            MoveResult::SWAP { pos } => {
-                api.set_falling(pixel, true);
-                return MoveResult::SWAP { pos };
-            },
-            MoveResult::REPLACE { pos } => {
-                api.set_falling(pixel, true);
-                return MoveResult::REPLACE {pos};
-            },
-            _ => {},
-        }
-    }
-
-    // Try to move horizontally according to direction
-    if direction.x != 0 {
-        match api.move_by_direction(pixel, Vec2::new(direction.x, 0), context, move_solid) {
-            MoveResult::SWAP { pos } => {
-                api.set_falling(pixel, contact_falling);
-                return MoveResult::SWAP {pos}
-            },
-            MoveResult::REPLACE { pos } => {
-                api.set_falling(pixel, true);
-                return MoveResult::REPLACE {pos};
-            },
-            _ => {
-                // Change velocity direction on x
-                api.set_velocity(pixel, Vec2::new(
-                    pixel.velocity().x * -1f32, pixel.velocity().y));
-            },
-        }
-    }
-
-    api.set_falling(pixel, contact_falling);
-    return MoveResult::STOP;
 }

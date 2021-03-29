@@ -277,17 +277,17 @@ const inspectPixel = () => {
                 $('#inspectNotMovedCountRow').hide();
             }
 
-            if (pixel.surrounded_liquid !== undefined && pixel.surrounded_liquid !== 0) {
-                let liquid = elements[Number(pixel.surrounded_liquid)]
+            if (pixel.absorbed_liquid !== undefined && pixel.absorbed_liquid !== 0) {
+                let liquid = elements[Number(pixel.absorbed_liquid)]
                 if (liquid) {
-                    $('#inspectSurroundedLiquid').text("In " + liquid.value.name);
-                    $('#inspectSurroundedLiquidRow').show();
+                    $('#inspectAbsorbedLiquid').text(liquid.value.name);
+                    $('#inspectAbsorbedLiquidRow').show();
                 }
                 else {
-                    $('#inspectSurroundedLiquidRow').hide();
+                    $('#inspectAbsorbedLiquidRow').hide();
                 }
             } else {
-                $('#inspectSurroundedLiquidRow').hide();
+                $('#inspectAbsorbedLiquidRow').hide();
             }
         }
     } else {
@@ -339,7 +339,7 @@ const paint = event => {
 
     let pixelPosition = getPixelPosition(event);
 
-    map.insert(pixelPosition[0], pixelPosition[1], selectedElement, brushSize.value);
+    map.paint(pixelPosition[0], pixelPosition[1], selectedElement, brushSize.value);
 };
 
 const smoothPaint = event => {
