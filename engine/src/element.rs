@@ -28,6 +28,18 @@ pub static WATER: ElementType = ElementType::Liquid(LiquidProperties {
     inertia: 0f32,
 });
 
+pub static SOIL_DIRT: ElementType = ElementType::Static(StaticProperties {
+    friction: 0.5f32,
+});
+
+pub static SOIL_ROCK: ElementType = ElementType::Static(StaticProperties {
+    friction: 0.5f32,
+});
+
+pub static GRASS: ElementType = ElementType::Static(StaticProperties {
+    friction: 0.5f32,
+});
+
 // Represents an element as an simple unsigned byte number, which can be used in wasm
 #[wasm_bindgen]
 #[repr(u8)]
@@ -38,6 +50,9 @@ pub enum Element {
     Sand = 2,
     Dirt = 3,
     Water = 4,
+    SoilDirt = 5,
+    SoilRock = 6,
+    Grass = 7,
 }
 
 impl Element {
@@ -49,6 +64,9 @@ impl Element {
             Element::Sand => &SAND,
             Element::Dirt => &DIRT,
             Element::Water => &WATER,
+            Element::SoilDirt => &SOIL_DIRT,
+            Element::SoilRock => &SOIL_ROCK,
+            Element::Grass => &GRASS,
         }
     }
 }

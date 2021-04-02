@@ -305,18 +305,18 @@ impl Map {
 
     // Create new pixel from given element
     fn create_pixel(element: Element, random: &mut Random) -> Pixel {
+        let noise = random.u8();
+
         match Element::element_type(element) {
             ElementType::Empty(properties) => Pixel::Empty(
                 EmptyPixelState::new(element, properties)),
             ElementType::Static(properties) => Pixel::Static(
-                StaticPixelState::new(element, properties)),
+                StaticPixelState::new(element, properties, noise)),
             ElementType::Solid(properties) => {
                 let velocity = match random.rand(&[0.5f32, 0.5f32]) {
                     0 => Vec2::new(-0.02f32, 0f32),
                     _ => Vec2::new(0.02f32, 0f32),
                 };
-
-                let noise = random.u8();
 
                 Pixel::Solid(SolidPixelState::new(element, properties, velocity, noise))
             },
@@ -325,8 +325,6 @@ impl Map {
                     0 => Vec2::new(-0.02f32, 0f32),
                     _ => Vec2::new(0.02f32, 0f32),
                 };
-
-                let noise = random.u8();
 
                 Pixel::Liquid(LiquidPixelState::new(element, properties, velocity, noise))
             }

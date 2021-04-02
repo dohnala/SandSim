@@ -25,7 +25,9 @@ impl PixelDisplayInfo {
     // Creates a new pixel display info from given pixel
     pub fn new(pixel: &Pixel) -> PixelDisplayInfo {
         let noise = match pixel {
+            Pixel::Static(state) => state.noise,
             Pixel::Solid(state) => state.noise,
+            Pixel::Liquid(state) => state.noise,
             _ => 0,
         };
 
@@ -149,11 +151,15 @@ impl EmptyPixelState {
 pub struct StaticPixelState {
     pub element: Element,
     pub properties: &'static StaticProperties,
+    // Random noise in [0..255] used for some effects
+    noise: u8,
 }
 
 impl StaticPixelState {
-    pub fn new(element: Element, properties: &'static StaticProperties) -> StaticPixelState {
-        StaticPixelState {element, properties}
+    pub fn new(element: Element,
+               properties: &'static StaticProperties,
+               noise: u8) -> StaticPixelState {
+        StaticPixelState {element, properties, noise}
     }
 }
 
