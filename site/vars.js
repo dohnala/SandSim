@@ -29,6 +29,9 @@ const elements = [
     {key: Element.SoilDirt, value: {name: "Soil: Dirt", hsv: [31,0.66,0.27], alpha: 1, params: [0.05,0,0,0]}},
     {key: Element.SoilRock, value: {name: "Soil: Rock", hsv: [28,0.11,0.18], alpha: 1, params: [0.02,0,0,0]}},
     {key: Element.Grass, value: {name: "Grass", hsv: [75,0.75,0.30], alpha: 1, params: [0.2,0,0,0]}},
+
+    // Noise element for debug purposes
+    {key: Element.Noise, value: {name: "Noise", hsv: [0, 0, 0], alpha: 1, params: [0,0,0,0]}},
 ];
 
 const mapSizes = [64, 128, 256, 512];

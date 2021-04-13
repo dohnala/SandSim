@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use crate::rand::Random;
 use crate::math::{Vec2, path, sign};
 use crate::pixel::{*};
-use crate::element::{Element, ElementType};
+use crate::element::{Element, ElementType, EMPTY_PROPERTIES};
 
 // Represents a square chunk in the map which can be processed independently
 #[wasm_bindgen]
@@ -93,21 +93,18 @@ pub struct Map {
     not_moved_threshold: u8,
 }
 
+// Public API
 #[wasm_bindgen]
 impl Map {
     // Creates a new map
     pub fn new(config: MapConfig) -> Map {
         console_error_panic_hook::set_once();
 
-        let mut random = Random::new(config.seed);
+        let random = Random::new(config.seed);
 
-        let elements: Vec<Element> = (0..config.size * config.size)
-            .map(|_i| { Element::Empty })
-            .collect();
-
-        let pixels: Vec<Pixel> = (&elements)
-            .into_iter()
-            .map(|element| { Map::create_pixel(*element, &mut random) })
+        let pixels: Vec<Pixel> = (0..config.size * config.size)
+            .map(|_i| { Pixel::Empty(
+                EmptyPixelState::new(Element::Empty, &EMPTY_PROPERTIES)) })
             .collect();
 
         let display = (&pixels)
@@ -156,7 +153,7 @@ impl Map {
             for y in 0..self.config.size {
                 let index = self.pixel_index(Vec2::new(x, y));
 
-                let pixel = Map::create_pixel(Element::Empty, &mut self.random);
+                let pixel = self.create_pixel(Element::Empty);
                 self.pixels[index] = pixel;
                 self.display[index] = PixelDisplayInfo::new(&pixel)
             }
@@ -210,28 +207,79 @@ impl Map {
     }
 }
 
+// Methods accessible in this crate, but not visible in public API
 impl Map {
     // Returns index in pixels vector for given position
-    fn pixel_index(&self, pos: Vec2<i32>) -> usize {
+    pub(crate) fn pixel_index(&self, pos: Vec2<i32>) -> usize {
         (pos.x + (pos.y * self.config.size)) as usize
     }
 
     // Returns index in chunks vector for given position
-    fn chunk_index(&self, pos: Vec2<i32>) -> usize {
+    pub(crate) fn chunk_index(&self, pos: Vec2<i32>) -> usize {
         (pos.x + (pos.y * self.chunk_dim)) as usize
     }
 
     // Returns pixel for given position
-    pub fn pixel(&mut self, x: i32, y: i32) -> Pixel {
+    pub(crate) fn pixel(&mut self, x: i32, y: i32) -> Pixel {
         let pos = Vec2::new(x, y);
 
         if self.out_of_bounds(pos) {
-            return Map::create_pixel(Element::Wall, &mut self.random);
+            return self.create_pixel(Element::Wall);
         }
 
         return self.pixels[self.pixel_index(pos)];
     }
 
+    // Insert pixel to given position
+    pub(crate) fn insert_pixel(&mut self, pos: Vec2<i32>, pixel: &Pixel) {
+        if self.out_of_bounds(pos) {
+            return;
+        }
+
+        let index = self.pixel_index(pos);
+
+        self.pixels[index] = *pixel;
+        self.display[index] = PixelDisplayInfo::new(pixel);
+
+        self.activate_surrounding_pixels(pos);
+    }
+
+    // Create new pixel from given element
+    pub(crate) fn create_pixel(&mut self, element: Element) -> Pixel {
+        let noise = self.random.u8();
+
+        self.create_pixel_with_noise(element, noise)
+    }
+
+    // Create new pixel from given element with given noise value
+    pub(crate) fn create_pixel_with_noise(&mut self, element: Element, noise: u8) -> Pixel {
+        match Element::element_type(element) {
+            ElementType::Empty(properties) => Pixel::Empty(
+                EmptyPixelState::new(element, properties)),
+            ElementType::Static(properties) => Pixel::Static(
+                StaticPixelState::new(element, properties, noise)),
+            ElementType::Solid(properties) => {
+                let velocity = match self.random.rand(&[0.5f32, 0.5f32]) {
+                    0 => Vec2::new(-0.02f32, 0f32),
+                    _ => Vec2::new(0.02f32, 0f32),
+                };
+
+                Pixel::Solid(SolidPixelState::new(element, properties, velocity, noise))
+            },
+            ElementType::Liquid(properties) => {
+                let velocity = match self.random.rand(&[0.5f32, 0.5f32]) {
+                    0 => Vec2::new(-0.02f32, 0f32),
+                    _ => Vec2::new(0.02f32, 0f32),
+                };
+
+                Pixel::Liquid(LiquidPixelState::new(element, properties, velocity, noise))
+            }
+        }
+    }
+}
+
+// Private internal methods
+impl Map {
     // Updates given pixel
     fn update_pixel(&mut self, x: i32, y: i32) -> bool {
         let pixel= &mut self.pixel(x, y);
@@ -284,41 +332,8 @@ impl Map {
         };
 
         if allow_paint {
-            let index = self.pixel_index(pos);
-            let pixel = Map::create_pixel(element, &mut self.random);
-
-            self.pixels[index] = pixel;
-            self.display[index] = PixelDisplayInfo::new(&pixel);
-
-            self.activate_surrounding_pixels(pos);
-        }
-    }
-
-    // Create new pixel from given element
-    fn create_pixel(element: Element, random: &mut Random) -> Pixel {
-        let noise = random.u8();
-
-        match Element::element_type(element) {
-            ElementType::Empty(properties) => Pixel::Empty(
-                EmptyPixelState::new(element, properties)),
-            ElementType::Static(properties) => Pixel::Static(
-                StaticPixelState::new(element, properties, noise)),
-            ElementType::Solid(properties) => {
-                let velocity = match random.rand(&[0.5f32, 0.5f32]) {
-                    0 => Vec2::new(-0.02f32, 0f32),
-                    _ => Vec2::new(0.02f32, 0f32),
-                };
-
-                Pixel::Solid(SolidPixelState::new(element, properties, velocity, noise))
-            },
-            ElementType::Liquid(properties) => {
-                let velocity = match random.rand(&[0.5f32, 0.5f32]) {
-                    0 => Vec2::new(-0.02f32, 0f32),
-                    _ => Vec2::new(0.02f32, 0f32),
-                };
-
-                Pixel::Liquid(LiquidPixelState::new(element, properties, velocity, noise))
-            }
+            let pixel = self.create_pixel(element);
+            self.insert_pixel(pos, &pixel);
         }
     }
 
@@ -518,7 +533,7 @@ impl<'a> MapApi<'a> {
 
     // Insert a new pixel of given element on given relative position
     pub fn insert_pixel(&mut self, dir: Vec2<i32>, element: Element) {
-        let pixel = &Map::create_pixel(element,  &mut self.map.random);
+        let pixel = &self.map.create_pixel(element);
 
         self.set_pixel(dir, &pixel, true);
     }

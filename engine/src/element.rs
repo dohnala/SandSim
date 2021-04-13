@@ -2,9 +2,11 @@ use wasm_bindgen::prelude::*;
 
 // These are all supported elements and their properties defined in static read-only memory
 
-pub static EMPTY: ElementType = ElementType::Empty(EmptyProperties {
+pub static EMPTY_PROPERTIES: EmptyProperties = EmptyProperties {
     friction: 0.1f32,
-});
+};
+
+pub static EMPTY: ElementType = ElementType::Empty(EMPTY_PROPERTIES);
 
 pub static WALL: ElementType = ElementType::Static(StaticProperties {
     friction: 0.5f32,
@@ -40,6 +42,10 @@ pub static GRASS: ElementType = ElementType::Static(StaticProperties {
     friction: 0.5f32,
 });
 
+pub static NOISE: ElementType = ElementType::Static(StaticProperties {
+    friction: 1f32,
+});
+
 // Represents an element as an simple unsigned byte number, which can be used in wasm
 #[wasm_bindgen]
 #[repr(u8)]
@@ -53,6 +59,8 @@ pub enum Element {
     SoilDirt = 5,
     SoilRock = 6,
     Grass = 7,
+    // Noise element for debug purposes
+    Noise = 8,
 }
 
 impl Element {
@@ -67,6 +75,7 @@ impl Element {
             Element::SoilDirt => &SOIL_DIRT,
             Element::SoilRock => &SOIL_ROCK,
             Element::Grass => &GRASS,
+            Element::Noise => &NOISE,
         }
     }
 }

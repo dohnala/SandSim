@@ -31,6 +31,11 @@ vec4 element_params(int element) {
 }
 
 vec4 pixel_color(int element, float pixel_noise) {
+    // If the element is noise, then return the color as grayscale image of the noise
+    if (element == 8) {
+        return vec4(pixel_noise, pixel_noise, pixel_noise, 1);
+    }
+
     // Element Color is in HSV + A format
     // color.x = Hue
     // color.y = Saturation
