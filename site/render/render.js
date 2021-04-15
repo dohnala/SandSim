@@ -4,7 +4,7 @@ import { memory } from "engine/engine_bg";
 
 const reglBuilder = require("regl");
 
-const useBlending = true;
+const useBlending = false;
 
 // Common shaders
 let texture_vert = require("./shaders/common/texture.vert");

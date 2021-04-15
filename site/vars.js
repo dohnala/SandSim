@@ -23,11 +23,11 @@ const backgroundColor = [0.31, 0.3, 0.3, 1];
 const elements = [
     {key: Element.Empty, value: {name: "Empty", hsv: [0,0,1], alpha: 0, params: [0,0,0,0]}},
     {key: Element.Wall, value: {name: "Wall", hsv: [0,0,0], alpha: 1, params: [0,0,0,0]}},
-    {key: Element.Sand, value: {name: "Sand",  hsv: [46,0.5,0.5], alpha: 1, params: [0.2,0,0,0]}},
-    {key: Element.Dirt, value: {name: "Dirt", hsv: [18,0.6,0.3], alpha: 1, params: [0.1,0,0,0]}},
-    {key: Element.Water, value: {name: "Water", hsv: [222,0.7,0.65], alpha: 0.7, params: [0.1,0.015,0.1,0]}},
-    {key: Element.SoilDirt, value: {name: "Soil: Dirt", hsv: [31,0.66,0.27], alpha: 1, params: [0.05,0,0,0]}},
-    {key: Element.SoilRock, value: {name: "Soil: Rock", hsv: [28,0.11,0.18], alpha: 1, params: [0.02,0,0,0]}},
+    {key: Element.Sand, value: {name: "Sand",  hsv: [46,0.5,0.25], alpha: 1, params: [0.2,0,0,0]}},
+    {key: Element.Dirt, value: {name: "Dirt", hsv: [18,0.6,0.15], alpha: 1, params: [0.1,0,0,0]}},
+    {key: Element.Water, value: {name: "Water", hsv: [222,0.7,0.3], alpha: 0.7, params: [0.1,0.015,0.1,0]}},
+    {key: Element.SoilDirt, value: {name: "Soil: Dirt", hsv: [40,1,0.15], alpha: 1, params: [1.5,0,0,0]}},
+    {key: Element.SoilRock, value: {name: "Soil: Rock", hsv: [217,0.15,0.075], alpha: 1, params: [1,0,0,0]}},
     {key: Element.Grass, value: {name: "Grass", hsv: [75,0.75,0.30], alpha: 1, params: [0.2,0,0,0]}},
 
     // Noise element for debug purposes
