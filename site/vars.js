@@ -28,7 +28,7 @@ const elements = [
     {key: Element.Water, value: {name: "Water", hsv: [222,0.7,0.3], alpha: 0.7, params: [0.1,0.015,0.1,0]}},
     {key: Element.SoilDirt, value: {name: "Soil: Dirt", hsv: [40,1,0.15], alpha: 1, params: [1.5,0,0,0]}},
     {key: Element.SoilRock, value: {name: "Soil: Rock", hsv: [217,0.15,0.075], alpha: 1, params: [1,0,0,0]}},
-    {key: Element.Grass, value: {name: "Grass", hsv: [75,0.75,0.30], alpha: 1, params: [0.2,0,0,0]}},
+    {key: Element.Grass, value: {name: "Grass", hsv: [75,0.7,0.35], alpha: 1, params: [1,0,0,0]}},
 
     // Noise element for debug purposes
     {key: Element.Noise, value: {name: "Noise", hsv: [0, 0, 0], alpha: 1, params: [0,0,0,0]}},

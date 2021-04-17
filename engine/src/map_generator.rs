@@ -138,6 +138,62 @@ impl CaveMapGenerator {
                 map.insert_pixel(Vec2::new(x, y), &pixel);
             }
         }
+
+        self.generate_grass(map);
+    }
+
+    // Generates grass
+    fn generate_grass(&mut self, map: &mut Map) {
+        const GRASS_HEIGHT: i32 = 3;
+        const GRASS_HEIGHT_PROB: f64 = 0.1;
+
+        // Noise to place grass
+        let grass_noise_fn = Fbm::new()
+            .set_seed((self.config.seed + 3) as u32)
+            .set_octaves(5)
+            .set_persistence(0.5)
+            .set_lacunarity(0.3)
+            .set_frequency(0.5);
+
+        let place_grass = |map: &mut Map, x: i32, y: i32, h: i32| {
+            let grass_noise = grass_noise_fn.get([x as f64, y as f64]);
+
+            if grass_noise < h as f64 * GRASS_HEIGHT_PROB {
+                return false;
+            }
+
+            let noise = match grass_noise {
+                n if n >= 0.4 => 20,
+                n if n >= 0.2 => 10,
+                _ => 0,
+            };
+
+            let pixel = map.create_pixel_with_noise(Element::Grass, noise);
+            map.insert_pixel(Vec2::new(x, y), &pixel);
+
+            return true;
+        };
+
+        for x in 0..self.config.size {
+            for y in 0..self.config.size {
+
+                let pixel = map.pixel(x, y);
+                let bottom_pixel = map.pixel(x, y + 1);
+
+                match (pixel.element(), bottom_pixel.element()) {
+                    (Element::Empty, Element::SoilDirt) => {
+                        place_grass(map, x, y + 1, 0);
+
+                        for h in 0..GRASS_HEIGHT {
+                            if !place_grass(map, x, y - h, h) {
+                                break;
+                            }
+                        }
+                    },
+                    _ => {},
+                }
+            }
+        }
     }
 }
 
