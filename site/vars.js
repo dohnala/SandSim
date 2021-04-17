@@ -1,6 +1,6 @@
 import {Element, MapGenerator} from "engine";
 
-const backgroundColor = [0.31, 0.3, 0.3, 1];
+const backgroundColor = [0.05, 0.05, 0.05, 1];
 
 // Elements and their properties
 //
